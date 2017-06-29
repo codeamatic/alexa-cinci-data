@@ -1,6 +1,7 @@
 package com.codeamatic;
 
 import com.amazon.speech.slu.Intent;
+import com.amazon.speech.slu.Slot;
 import com.amazon.speech.speechlet.IntentRequest;
 import com.amazon.speech.speechlet.LaunchRequest;
 import com.amazon.speech.speechlet.Session;
@@ -12,9 +13,12 @@ import com.amazon.speech.speechlet.SpeechletResponse;
 import com.amazon.speech.ui.PlainTextOutputSpeech;
 import com.amazon.speech.ui.Reprompt;
 import com.amazon.speech.ui.SimpleCard;
+import com.codeamatic.exceptions.NeighborhoodNotSupportedException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
 
 import static com.amazon.speech.speechlet.SpeechletResponse.newAskResponse;
 
@@ -31,6 +35,8 @@ public class CincyDataSpeechlet implements Speechlet {
   private static final String SLOT_NEIGHBORHOOD = "neighborhood";
   private static final String SLOT_DATE = "date";
   private static final String SLOT_DATE_STRING = "date_string";
+
+  private static final String NEIGHBORHOOD_PROMPT = "Which neighborhood would you like a crime report for?";
 
   @Override
   public void onSessionStarted(SessionStartedRequest request, Session session) throws SpeechletException {
@@ -53,7 +59,7 @@ public class CincyDataSpeechlet implements Speechlet {
 
     switch(intentName) {
       case "CrimeReportIntent":
-        return getCrimeReportResponse();
+        return getCrimeReportResponse(intent);
       case "SupportedNeighborhoodsIntent":
         return getSupportedNeighborhoodsResponse();
       case "AMAZON.HelpIntent":
@@ -78,7 +84,7 @@ public class CincyDataSpeechlet implements Speechlet {
    * @return SpeechletResponse spoken and visual response for the given intent
    */
   private SpeechletResponse getWelcomeResponse() {
-    String neighborhoodPrompt = "Which neighborhood would you like a crime report for?";
+    String neighborhoodPrompt = NEIGHBORHOOD_PROMPT;
     String speechText = "Welcome to the " + SKILL_NAME + " skill. "
             + "You can get crime and incident data for neighborhoods in the city of Cincinnati. "
             + "For example, you can say, give me yesterday's crime report for Avondale. "
@@ -141,7 +147,27 @@ public class CincyDataSpeechlet implements Speechlet {
     return newAskResponse(speech, reprompt, card);
   }
 
-  private SpeechletResponse getCrimeReportResponse() {
+  private SpeechletResponse getCrimeReportResponse(final Intent intent) {
+
+    try {
+      String neighborhood = getNeighborHoodFromIntent(intent.getSlot(SLOT_NEIGHBORHOOD));
+    } catch(NeighborhoodNotSupportedException ne) {
+      String speechOutput = "Sorry, crime and incident data is not supported for that neighborhood. "
+              + NEIGHBORHOOD_PROMPT;
+
+      PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
+      speech.setText(speechOutput);
+
+      Reprompt reprompt = new Reprompt();
+      reprompt.setOutputSpeech(speech);
+
+      return newAskResponse(speech, reprompt);
+    }
+
+    //String date = getDateFromIntent(intent.getSlot(SLOT_DATE));
+    //String date_string = getDateStringFromIntent(intent.getSlot(SLOT_DATE_STRING));
+    String socrataQueryString = "";
+
     return null;
   }
 
@@ -188,5 +214,23 @@ public class CincyDataSpeechlet implements Speechlet {
     }
 
     return neighborhoodsList.toString();
+  }
+
+  /**
+   * Retrieves the requested neighborhood slot value if it is supported, otherwises throws an exception.
+   *
+   * @param neighborhoodSlot Slot that holds the value for a neighborhood
+   * @return requested neighborhood if exists, null otherwise
+   * @throws NeighborhoodNotSupportedException throws Exception if neighborhood is not supported
+   */
+  private String getNeighborHoodFromIntent(final Slot neighborhoodSlot) throws NeighborhoodNotSupportedException {
+    String neighborhood = neighborhoodSlot.getValue();
+    List<String> neighborhoods = Neighborhoods.getNeighborhoods();
+
+    if(neighborhood == null || neighborhoods.contains(neighborhood)) {
+      return neighborhood;
+    } else {
+      throw new NeighborhoodNotSupportedException(neighborhood);
+    }
   }
 }
