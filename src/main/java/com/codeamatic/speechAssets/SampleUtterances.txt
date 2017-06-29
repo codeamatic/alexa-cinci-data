@@ -1,0 +1,12 @@
+give me a crime report
+give me a crime report in {neighborhood} for {date_string}
+give me a crime report in {neighborhood} for {date}
+give me a crime report in {neighborhood} {date_string}
+give me a crime report for {date} in {neighborhood}
+give me a crime report for {date} for {neighborhood}
+give me a crime report for {neighborhood}
+give me a crime report {date_string} in {neighborhood}
+give me a crime report {date_string} for {neighborhood}
+give me {date_string} crime report for {neighborhood}
+give me {date_string} crime report in {neighborhood}
+give me {date_string} crime report
