@@ -1,16 +1,19 @@
 {
   "intents": [
     {
-      "name": "AMAZON.CancelIntent"
+      "intent": "AMAZON.CancelIntent"
     },
     {
-      "name": "AMAZON.HelpIntent"
+      "intent": "AMAZON.HelpIntent"
     },
     {
-      "name": "AMAZON.StopIntent"
+      "intent": "AMAZON.StopIntent"
     },
     {
-      "name": "CrimeReportIntent",
+      "intent": "SupportedNeighborhoodsIntent"
+    },
+    {
+      "intent": "CrimeReportIntent",
       "slots": [
         {
           "name": "date",

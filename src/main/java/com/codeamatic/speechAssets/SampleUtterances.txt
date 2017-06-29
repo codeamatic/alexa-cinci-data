@@ -1,12 +1,18 @@
-give me a crime report
-give me a crime report in {neighborhood} for {date_string}
-give me a crime report in {neighborhood} for {date}
-give me a crime report in {neighborhood} {date_string}
-give me a crime report for {date} in {neighborhood}
-give me a crime report for {date} for {neighborhood}
-give me a crime report for {neighborhood}
-give me a crime report {date_string} in {neighborhood}
-give me a crime report {date_string} for {neighborhood}
-give me {date_string} crime report for {neighborhood}
-give me {date_string} crime report in {neighborhood}
-give me {date_string} crime report
+CrimeReportIntent give me a crime report
+CrimeReportIntent give me a crime report in {neighborhood} for {date_string}
+CrimeReportIntent give me a crime report in {neighborhood} for {date}
+CrimeReportIntent give me a crime report in {neighborhood} {date_string}
+CrimeReportIntent give me a crime report for {date} in {neighborhood}
+CrimeReportIntent give me a crime report for {date} for {neighborhood}
+CrimeReportIntent give me a crime report for {neighborhood}
+CrimeReportIntent give me a crime report {date_string} in {neighborhood}
+CrimeReportIntent give me a crime report {date_string} for {neighborhood}
+CrimeReportIntent give me {date_string} crime report for {neighborhood}
+CrimeReportIntent give me {date_string} crime report in {neighborhood}
+CrimeReportIntent give me {date_string} crime report
+
+SupportedNeighborhoodsIntent what neighborhoods
+SupportedNeighborhoodsIntent what neighborhoods are supported
+SupportedNeighborhoodsIntent which neighborhoods
+SupportedNeighborhoodsIntent which neighborhoods are supported
+SupportedNeighborhoodsIntent which neighborhoods do you know
