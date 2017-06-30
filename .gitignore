@@ -2,6 +2,11 @@
 .idea
 .iml
 
+# packages
+build
+.gradle/
+gradle/
+
 # Compiled class file
 *.class
 

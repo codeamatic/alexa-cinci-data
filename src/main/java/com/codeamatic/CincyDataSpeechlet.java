@@ -1,7 +1,6 @@
 package com.codeamatic;
 
 import com.amazon.speech.slu.Intent;
-import com.amazon.speech.slu.Slot;
 import com.amazon.speech.speechlet.IntentRequest;
 import com.amazon.speech.speechlet.LaunchRequest;
 import com.amazon.speech.speechlet.Session;
@@ -20,7 +19,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -151,6 +149,12 @@ public class CincyDataSpeechlet implements Speechlet {
     return newAskResponse(speech, reprompt, card);
   }
 
+  /**
+   *  Creates and returns a {@code SpeechletResponse} with a message and card.
+   *
+   * @param intent current intent
+   * @return
+   */
   private SpeechletResponse getCrimeReportResponse(final Intent intent) {
 
     // Get the Neighborhood requested
@@ -280,22 +284,16 @@ public class CincyDataSpeechlet implements Speechlet {
       return null;
     }
 
-    String socrataStringDate = SocrataDateUtil.getFormattedDate(alexaDate);
+    String socrataStringDate = AlexaDateUtil.getFormattedDate(alexaDate);
 
     // Convert socrataDate to a real date to compare against todays date
     LocalDate socrataDate = LocalDate.parse(socrataStringDate, DateTimeFormatter.ISO_DATE);
     LocalDate now = LocalDate.now();
 
-    if(socrataDate.compareTo(now) > 0) {
+    if(socrataDate.isAfter(now)) {
       throw new DateRangeException(socrataDate.toString());
     }
 
-//    String today = LocalDateTime.now().format(DateTimeFormatter.ISO_DATE);
-//
-//    if(socrataDate) {
-//
-//    }
-
-    return null;
+    return socrataStringDate;
   }
 }
