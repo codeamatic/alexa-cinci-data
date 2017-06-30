@@ -13,11 +13,15 @@ import com.amazon.speech.speechlet.SpeechletResponse;
 import com.amazon.speech.ui.PlainTextOutputSpeech;
 import com.amazon.speech.ui.Reprompt;
 import com.amazon.speech.ui.SimpleCard;
+import com.codeamatic.exceptions.DateRangeException;
 import com.codeamatic.exceptions.NeighborhoodNotSupportedException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import static com.amazon.speech.speechlet.SpeechletResponse.newAskResponse;
@@ -167,7 +171,23 @@ public class CincyDataSpeechlet implements Speechlet {
       return newAskResponse(speech, reprompt);
     }
 
-    String date = getDateFromIntent(intent);
+    // Get the date requested
+    try {
+      String date = getDateFromIntent(intent);
+    } catch(DateRangeException dex) {
+      log.error("Date requested is in the future.", dex);
+
+      String speechOutput = "Sorry, crime and incident data is not supported for future dates. "
+              + NEIGHBORHOOD_PROMPT;
+
+      PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
+      speech.setText(speechOutput);
+
+      Reprompt reprompt = new Reprompt();
+      reprompt.setOutputSpeech(speech);
+
+      return newAskResponse(speech, reprompt);
+    }
 
     //String date_string = getDateStringFromIntent(intent.getSlot(SLOT_DATE_STRING));
     //String socrataQueryString = buildSocrataQueryString(date, date_string, neighborhood);
@@ -246,8 +266,35 @@ public class CincyDataSpeechlet implements Speechlet {
     }
   }
 
-  private String getDateFromIntent(final Intent intent) {
-    String date = intent.getSlot(SLOT_DATE).getValue();
+  /**
+   * Retrieves the requested date, if applicable.
+   *
+   * @param intent Intent that holds slots
+   * @return String date in string format
+   * @throws DateRangeException thrown if the date provided is in the future
+   */
+  private String getDateFromIntent(final Intent intent) throws DateRangeException {
+    String alexaDate = intent.getSlot(SLOT_DATE).getValue();
+
+    if(alexaDate == null) {
+      return null;
+    }
+
+    String socrataStringDate = SocrataDateUtil.getFormattedDate(alexaDate);
+
+    // Convert socrataDate to a real date to compare against todays date
+    LocalDate socrataDate = LocalDate.parse(socrataStringDate, DateTimeFormatter.ISO_DATE);
+    LocalDate now = LocalDate.now();
+
+    if(socrataDate.compareTo(now) > 0) {
+      throw new DateRangeException(socrataDate.toString());
+    }
+
+//    String today = LocalDateTime.now().format(DateTimeFormatter.ISO_DATE);
+//
+//    if(socrataDate) {
+//
+//    }
 
     return null;
   }
