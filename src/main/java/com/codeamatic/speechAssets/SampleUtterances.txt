@@ -1,9 +1,12 @@
 CrimeReportIntent give me a crime report
 CrimeReportIntent give me a crime report in {neighborhood} for {date_string}
 CrimeReportIntent give me a crime report in {neighborhood} for {date}
+CrimeReportIntent give me a crime report in {neighborhood} for {date} through {date}
+CrimeReportIntent give me a crime report in {neighborhood} for {date} to {date}
 CrimeReportIntent give me a crime report in {neighborhood} {date_string}
 CrimeReportIntent give me a crime report for {date} in {neighborhood}
-CrimeReportIntent give me a crime report for {date} for {neighborhood}
+CrimeReportIntent give me a crime report for {date} through {date} in {neighborhood}
+CrimeReportIntent give me a crime report for {date} to {date} for {neighborhood}
 CrimeReportIntent give me a crime report for {neighborhood}
 CrimeReportIntent give me a crime report {date_string} in {neighborhood}
 CrimeReportIntent give me a crime report {date_string} for {neighborhood}
