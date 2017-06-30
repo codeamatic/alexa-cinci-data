@@ -149,9 +149,12 @@ public class CincyDataSpeechlet implements Speechlet {
 
   private SpeechletResponse getCrimeReportResponse(final Intent intent) {
 
+    // Get the Neighborhood requested
     try {
-      String neighborhood = getNeighborHoodFromIntent(intent.getSlot(SLOT_NEIGHBORHOOD));
-    } catch(NeighborhoodNotSupportedException ne) {
+      String neighborhood = getNeighborHoodFromIntent(intent);
+    } catch (NeighborhoodNotSupportedException nex) {
+      log.error("Neighborhood not supported.", nex);
+
       String speechOutput = "Sorry, crime and incident data is not supported for that neighborhood. "
               + NEIGHBORHOOD_PROMPT;
 
@@ -164,9 +167,10 @@ public class CincyDataSpeechlet implements Speechlet {
       return newAskResponse(speech, reprompt);
     }
 
-    //String date = getDateFromIntent(intent.getSlot(SLOT_DATE));
+    String date = getDateFromIntent(intent);
+
     //String date_string = getDateStringFromIntent(intent.getSlot(SLOT_DATE_STRING));
-    String socrataQueryString = "";
+    //String socrataQueryString = buildSocrataQueryString(date, date_string, neighborhood);
 
     return null;
   }
@@ -219,18 +223,32 @@ public class CincyDataSpeechlet implements Speechlet {
   /**
    * Retrieves the requested neighborhood slot value if it is supported, otherwises throws an exception.
    *
-   * @param neighborhoodSlot Slot that holds the value for a neighborhood
+   * @param intent Intent that holds slots
    * @return requested neighborhood if exists, null otherwise
    * @throws NeighborhoodNotSupportedException throws Exception if neighborhood is not supported
    */
-  private String getNeighborHoodFromIntent(final Slot neighborhoodSlot) throws NeighborhoodNotSupportedException {
-    String neighborhood = neighborhoodSlot.getValue();
-    List<String> neighborhoods = Neighborhoods.getNeighborhoods();
+  private String getNeighborHoodFromIntent(final Intent intent) throws NeighborhoodNotSupportedException {
+    String neighborhood = intent.getSlot(SLOT_NEIGHBORHOOD).getValue();
 
-    if(neighborhood == null || neighborhoods.contains(neighborhood)) {
+    // neighborhood wasn't requested, return immediately
+    if(neighborhood == null) {
+      return null;
+    }
+
+    List<String> neighborhoods = Neighborhoods.getNeighborhoods();
+    boolean neighborhoodExists = neighborhoods.stream().anyMatch(s -> s.equalsIgnoreCase(neighborhood));
+
+    if(neighborhoodExists) {
       return neighborhood;
     } else {
+      // requested neighborhood isn't available
       throw new NeighborhoodNotSupportedException(neighborhood);
     }
+  }
+
+  private String getDateFromIntent(final Intent intent) {
+    String date = intent.getSlot(SLOT_DATE).getValue();
+
+    return null;
   }
 }
