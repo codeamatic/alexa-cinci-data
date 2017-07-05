@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -27,7 +28,7 @@ public class SocrataClient implements Socrata {
   private String serviceUrl;
   private GsonBuilder gsonBuilder = new GsonBuilder();
 
-  SocrataClient(String token,  String serviceUrl) {
+  public SocrataClient(String token,  String serviceUrl) {
     this.token = token;
     this.serviceUrl = serviceUrl;
   }
@@ -36,21 +37,18 @@ public class SocrataClient implements Socrata {
    * {@inheritDoc}
    */
   public List<CrimeReport> getCrimeReports() {
-    return this.getCrimeReports(null, null, null);
+    return this.getCrimeReports(null, null);
   }
 
   /**
    * {@inheritDoc}
    */
-  public List<CrimeReport> getCrimeReports(String neighborhood, String date) {
-    return this.getCrimeReports(neighborhood, date, null);
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  public List<CrimeReport> getCrimeReports(String neighborhood, String dateRangeBegin, String dateRangeEnd) {
+  public List<CrimeReport> getCrimeReports(String neighborhood, List<String> dates) {
     CrimeReport[] crimeReports = null;
+
+    String dateRangeBegin = (dates != null && ! dates.isEmpty()) ? dates.get(0) : null;
+    String dateRangeEnd = (dates != null && dates.size() > 1) ? dates.get(1) : null;
+
     String query = this.getServiceQuery(neighborhood, dateRangeBegin, dateRangeEnd);
     String urlString = this.serviceUrl + query;
 

@@ -13,7 +13,10 @@ import com.amazon.speech.ui.PlainTextOutputSpeech;
 import com.amazon.speech.ui.Reprompt;
 import com.amazon.speech.ui.SimpleCard;
 import com.codeamatic.exceptions.DateRangeException;
+import com.codeamatic.exceptions.DateStringNotSupportedException;
 import com.codeamatic.exceptions.NeighborhoodNotSupportedException;
+import com.codeamatic.socrata.CrimeReport;
+import com.codeamatic.socrata.support.SocrataClient;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,8 +33,8 @@ import static com.amazon.speech.speechlet.SpeechletResponse.newAskResponse;
 public class CincyDataSpeechlet implements Speechlet {
   private static final Logger log = LoggerFactory.getLogger(CincyDataSpeechlet.class);
 
-  private static final String SOCRATA_KEY = System.getenv("SOCRATA_KEY");
-  private static final String SOCRATA_SECRET = System.getenv("SOCRATA_SECRET");
+  private static final String SOCRATA_TOKEN = System.getenv("SOCRATA_CINCY_TOKEN");
+  private static final String SOCRATA_CRIME_API = System.getenv("SOCRATA_CINCY_CRIME_API");
   private static final String SKILL_NAME = "Cincy Data";
 
   private static final String SLOT_NEIGHBORHOOD = "neighborhood";
@@ -156,10 +159,12 @@ public class CincyDataSpeechlet implements Speechlet {
    * @return
    */
   private SpeechletResponse getCrimeReportResponse(final Intent intent) {
+    String neighborhood = null;
+    List<String> dates = null;
 
     // Get the Neighborhood requested
     try {
-      String neighborhood = getNeighborHoodFromIntent(intent);
+      neighborhood = getNeighborHoodFromIntent(intent);
     } catch (NeighborhoodNotSupportedException nex) {
       log.error("Neighborhood not supported.", nex);
 
@@ -177,11 +182,11 @@ public class CincyDataSpeechlet implements Speechlet {
 
     // Get the date requested
     try {
-      String date = getDateFromIntent(intent);
+      dates.add(getDateFromIntent(intent));
     } catch(DateRangeException dex) {
-      log.error("Date requested is in the future.", dex);
+      log.error("Date requested is in the future or not supported.", dex);
 
-      String speechOutput = "Sorry, crime and incident data is not supported for future dates. "
+      String speechOutput = "Sorry, crime and incident data is not supported for that date. "
               + NEIGHBORHOOD_PROMPT;
 
       PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
@@ -193,8 +198,27 @@ public class CincyDataSpeechlet implements Speechlet {
       return newAskResponse(speech, reprompt);
     }
 
-    //String date_string = getDateStringFromIntent(intent.getSlot(SLOT_DATE_STRING));
-    //String socrataQueryString = buildSocrataQueryString(date, date_string, neighborhood);
+    // Get the date string request
+    try {
+      dates = getDateFromDateStringIntent(intent);
+    } catch(Exception ex) {
+      log.error("Date string request error.", ex);
+
+      String speechOutput = "Sorry, crime and incident data is not supported for that date. "
+              + NEIGHBORHOOD_PROMPT;
+
+      PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
+      speech.setText(speechOutput);
+
+      Reprompt reprompt = new Reprompt();
+      reprompt.setOutputSpeech(speech);
+
+      return newAskResponse(speech, reprompt);
+    }
+
+
+    SocrataClient socrataClient = new SocrataClient(SOCRATA_TOKEN, SOCRATA_CRIME_API);
+    List<CrimeReport> crimeReports = socrataClient.getCrimeReports(neighborhood, dates);
 
     return null;
   }
@@ -244,6 +268,20 @@ public class CincyDataSpeechlet implements Speechlet {
     return neighborhoodsList.toString();
   }
 
+
+  private List<String> getDateFromDateStringIntent(final Intent intent) throws DateStringNotSupportedException {
+    String dateString = intent.getSlot(SLOT_DATE_STRING).getValue();
+
+    // Date String wasn't requested, return immediately
+    if(dateString == null) {
+      return null;
+    }
+
+   // List<String> dateStringDates = DateStringUtil.getFormattedDate(dateString);
+
+    return null;
+  }
+
   /**
    * Retrieves the requested neighborhood slot value if it is supported, otherwises throws an exception.
    *
@@ -286,14 +324,18 @@ public class CincyDataSpeechlet implements Speechlet {
 
     String socrataStringDate = AlexaDateUtil.getFormattedDate(alexaDate);
 
+    if(socrataStringDate == null) {
+      throw new DateRangeException("Unsupported date: " + alexaDate);
+    }
+
     // Convert socrataDate to a real date to compare against todays date
     LocalDate socrataDate = LocalDate.parse(socrataStringDate, DateTimeFormatter.ISO_DATE);
-    LocalDate now = LocalDate.now();
 
-    if(socrataDate.isAfter(now)) {
-      throw new DateRangeException(socrataDate.toString());
+    if(socrataDate.isAfter(LocalDate.now())) {
+      throw new DateRangeException("Future date: " + socrataDate.toString());
     }
 
     return socrataStringDate;
   }
+
 }

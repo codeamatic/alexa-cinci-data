@@ -4,6 +4,7 @@ import com.codeamatic.socrata.CrimeReport;
 
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.Assert.assertTrue;
@@ -41,7 +42,7 @@ public class SocrataClientTest {
   @Test
   public void testCrimeReportSingleDate() {
     SocrataClient socrataClient = new SocrataClient(API_TOKEN, API_URL);
-    List<CrimeReport> crimeReportList = socrataClient.getCrimeReports(null, "2011-09-22");
+    List<CrimeReport> crimeReportList = socrataClient.getCrimeReports(null, Arrays.asList("2011-09-22"));
 
     assertTrue(crimeReportList.size() > 0);
   }
@@ -49,7 +50,8 @@ public class SocrataClientTest {
   @Test
   public void testCrimeReportDateRange() {
     SocrataClient socrataClient = new SocrataClient(API_TOKEN, API_URL);
-    List<CrimeReport> crimeReportList = socrataClient.getCrimeReports(null, "2011-09-22", "2011-09-24");
+    List<String> dates = Arrays.asList("2011-09-22", "2011-09-24");
+    List<CrimeReport> crimeReportList = socrataClient.getCrimeReports(null, dates);
 
     assertTrue(crimeReportList.size() > 0);
   }
@@ -57,7 +59,7 @@ public class SocrataClientTest {
   @Test
   public void testCrimeReportNeighborhoodDate() {
     SocrataClient socrataClient = new SocrataClient(API_TOKEN, API_URL);
-    List<CrimeReport> crimeReportList = socrataClient.getCrimeReports("northside", "2011-09-22");
+    List<CrimeReport> crimeReportList = socrataClient.getCrimeReports("northside", Arrays.asList("2011-09-22"));
 
     assertTrue(crimeReportList.size() > 0);
   }
@@ -65,7 +67,8 @@ public class SocrataClientTest {
   @Test
   public void testCrimeReportNeighborhoodDateRange() {
     SocrataClient socrataClient = new SocrataClient(API_TOKEN, API_URL);
-    List<CrimeReport> crimeReportList = socrataClient.getCrimeReports("avondale","2011-09-22", "2011-09-24");
+    List<String> dates = Arrays.asList("2011-09-22", "2011-09-24");
+    List<CrimeReport> crimeReportList = socrataClient.getCrimeReports("avondale", dates);
 
     assertTrue(crimeReportList.size() > 0);
   }

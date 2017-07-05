@@ -20,13 +20,5 @@ public interface Socrata {
    *
    * @return a list of crime reports
    */
-  List<CrimeReport> getCrimeReports(String neighborhood, String date);
-
-  /**
-   * Retrieves a list of {@link CrimeReport} objects from the Socrata API
-   * filtered by neighborhood and a date range.
-   *
-   * @return a list of crime reports
-   */
-  List<CrimeReport> getCrimeReports(String neighborhood, String dateRangeBegin, String dateRangeEnd);
+  List<CrimeReport> getCrimeReports(String neighborhood, List<String> dates);
 }

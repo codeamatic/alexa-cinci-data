@@ -36,11 +36,13 @@ public class AlexaDateUtil {
 
   /**
    * Weekend: YYYY-Www-WE
+   * Date ranges aren't supported by this utility.  This REGEX is just a placeholder.
    */
   private static final String REGEX_DATE_WEEK_WEEKEND = "^\\d{4}-W\\d{2}-WE$";
 
   /**
    *  Seasonal: YYYY-JJ (where JJ represents a two letter season specification)
+   *  Future dates aren't supported.  This REGEX is just a placeholder.
    */
   private static final String REGEX_DATE_SEASON = "^\\d{4}-[A-Z]{2}$";
 
@@ -67,24 +69,28 @@ public class AlexaDateUtil {
    * @param alexaDate String date from Alexa
    * @return String formatted date or null if date can't be formatted
    */
-  public static String getFormattedDate(String alexaDate) {
+  static String getFormattedDate(String alexaDate) {
+    String formattedDate = null;
 
     if(alexaDate.matches(REGEX_DATE_NORMAL)) {
       // Already in the necessary format
-      return alexaDate;
+      formattedDate = alexaDate;
+    } else if(alexaDate.matches(REGEX_DATE_NOW)) {
+      formattedDate = LocalDate.now().toString();
     } else if(alexaDate.matches(REGEX_DATE_MONTH)) {
       // YYYY-MM + -01
-      return alexaDate + MONTH_DAY_CONST;
+      formattedDate = alexaDate + MONTH_DAY_CONST;
     } else if(alexaDate.matches(REGEX_DATE_DECADE)) {
-      String currentYear = Integer.toString(LocalDate.now().getDayOfYear());
-      return currentYear + MONTH_DAY_CONST + MONTH_DAY_CONST;
+      String currentYear = Integer.toString(LocalDate.now().getYear());
+      formattedDate = currentYear + MONTH_DAY_CONST + MONTH_DAY_CONST;
     } else if(alexaDate.matches(REGEX_DATE_YEAR)) {
-      return alexaDate + MONTH_DAY_CONST + MONTH_DAY_CONST;
+      formattedDate = alexaDate + MONTH_DAY_CONST + MONTH_DAY_CONST;
     } else if(alexaDate.matches(REGEX_DATE_WEEK)) {
-      LocalDate parsedDate = LocalDate.parse("2016-W47-2", DateTimeFormatter.ISO_WEEK_DATE);
-      return parsedDate.toString();
+      // Default to first day of the week (Monday)
+      LocalDate parsedDate = LocalDate.parse(alexaDate + "-1", DateTimeFormatter.ISO_WEEK_DATE);
+      formattedDate = parsedDate.toString();
     }
 
-    return null;
+    return formattedDate;
   }
 }
