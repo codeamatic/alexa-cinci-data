@@ -99,7 +99,7 @@ public class CincyDataSpeechlet implements Speechlet {
 
     // Create the Simple card content
     SimpleCard card = new SimpleCard();
-    card.setTitle("Cincy Data");
+    card.setTitle(SKILL_NAME);
     card.setContent(speechText);
 
     // Create the plain text output.
@@ -138,7 +138,7 @@ public class CincyDataSpeechlet implements Speechlet {
 
     // Create the Simple card content
     SimpleCard card = new SimpleCard();
-    card.setTitle("Cincy Data");
+    card.setTitle(SKILL_NAME);
     card.setContent(speechText);
 
     // Create the plain text output.
@@ -235,7 +235,7 @@ public class CincyDataSpeechlet implements Speechlet {
 
     // Card
     SimpleCard card = new SimpleCard();
-    card.setTitle("Cincy Data - Neighborhoods");
+    card.setTitle(SKILL_NAME + " - Neighborhoods");
     card.setContent(speechOutputText);
 
     // Plaintext Original Speech
