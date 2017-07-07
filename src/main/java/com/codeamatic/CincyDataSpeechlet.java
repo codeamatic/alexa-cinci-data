@@ -25,7 +25,6 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,7 +41,7 @@ public class CincyDataSpeechlet implements Speechlet {
   private static final String SOCRATA_CRIME_API = System.getenv("SOCRATA_CINCY_CRIME_API");
   private static final String SKILL_NAME = "Cincy Data";
   private static final String TIME_START = "T00:00:00.000";
-  private static final String TIME_END = "T23:59:59:59.999";
+  private static final String TIME_END = "T23:59:59.999";
 
   private static final String SLOT_NEIGHBORHOOD = "neighborhood";
   private static final String SLOT_DATE = "date";

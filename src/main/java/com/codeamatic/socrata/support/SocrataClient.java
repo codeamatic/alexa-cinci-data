@@ -45,9 +45,13 @@ public class SocrataClient implements Socrata {
    */
   public List<CrimeReport> getCrimeReports(String neighborhood, List<String> dates) {
     CrimeReport[] crimeReports = null;
+    String dateRangeBegin = null;
+    String dateRangeEnd = null;
 
-    String dateRangeBegin = (dates != null && ! dates.isEmpty()) ? dates.get(0) : null;
-    String dateRangeEnd = (dates != null && dates.size() > 1) ? dates.get(1) : null;
+    if(dates != null) {
+      dateRangeBegin = dates.get(0);
+      dateRangeEnd = dates.get(1);
+    }
 
     String query = this.getServiceQuery(neighborhood, dateRangeBegin, dateRangeEnd);
     String urlString = this.serviceUrl + query;
@@ -75,7 +79,7 @@ public class SocrataClient implements Socrata {
    */
   private String getServiceQuery(String neighborhood, String dateRangeBegin, String dateRangeEnd) {
     String appToken = (this.token != null) ? "&$$app_token=" + this.token : "";
-    String query = "$select=offense,COUNT(offense) as count&$group=offense&$order=count";
+    String query = "?$select=offense,COUNT(offense) as count&$group=offense&$order=count";
     String where = "";
 
     // specific neighborhood or all
@@ -89,7 +93,7 @@ public class SocrataClient implements Socrata {
       where += "occurredon >= '" + dateRangeBegin + "' AND occurredon <= '" + dateRangeEnd + "'";
     }
 
-    where = (where.isEmpty()) ? appToken + "&$where=" + where : where;
+    where = (where.isEmpty()) ? where : appToken + "&$where=" + where;
     query = query + where;
 
     return query.replace(" ", "%20");
