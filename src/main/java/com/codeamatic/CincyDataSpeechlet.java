@@ -40,6 +40,7 @@ public class CincyDataSpeechlet implements Speechlet {
   private static final String SOCRATA_TOKEN = System.getenv("SOCRATA_CINCY_TOKEN");
   private static final String SOCRATA_CRIME_API = System.getenv("SOCRATA_CINCY_CRIME_API");
   private static final String SKILL_NAME = "Cincy Data";
+
   private static final String TIME_START = "T00:00:00.000";
   private static final String TIME_END = "T23:59:59.999";
 
@@ -162,29 +163,27 @@ public class CincyDataSpeechlet implements Speechlet {
    *  Creates and returns a {@code SpeechletResponse} with a message and card.
    *
    * @param intent current intent
-   * @return
+   * @return SpeechletResponse  spoken and visual response for crime report intent
    */
   private SpeechletResponse getCrimeReportResponse(final Intent intent) {
-    String neighborhood = null;
+    String neighborhoodSlot = intent.getSlot(SLOT_NEIGHBORHOOD).getValue();
+    String alexaDateSlot = intent.getSlot(SLOT_DATE).getValue();
+    String alexaDateStringSlot = intent.getSlot(SLOT_DATE_STRING).getValue();
     List<String> dates = null;
 
+  if(neighborhoodSlot != null) {
     // Get the Neighborhood requested
     try {
-      neighborhood = getNeighborHoodFromIntent(intent);
+      String neighborhood = getNeighborHoodFromSlot(neighborhoodSlot);
     } catch (NeighborhoodNotSupportedException nex) {
       log.error("Neighborhood not supported.", nex);
 
       String speechOutput = "Sorry, crime and incident data is not supported for that neighborhood. "
-              + NEIGHBORHOOD_PROMPT;
+                            + NEIGHBORHOOD_PROMPT;
 
-      PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
-      speech.setText(speechOutput);
-
-      Reprompt reprompt = new Reprompt();
-      reprompt.setOutputSpeech(speech);
-
-      return newAskResponse(speech, reprompt);
+      return buildAskResponse(speechOutput, null);
     }
+  }
 
     // Get the date requested
     try {
@@ -195,13 +194,7 @@ public class CincyDataSpeechlet implements Speechlet {
       String speechOutput = "Sorry, crime and incident data is not supported for that date. "
               + NEIGHBORHOOD_PROMPT;
 
-      PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
-      speech.setText(speechOutput);
-
-      Reprompt reprompt = new Reprompt();
-      reprompt.setOutputSpeech(speech);
-
-      return newAskResponse(speech, reprompt);
+      return buildAskResponse(speechOutput, null);
     }
 
     // Get the date string request
@@ -213,18 +206,12 @@ public class CincyDataSpeechlet implements Speechlet {
       String speechOutput = "Sorry, crime and incident data is not supported for that date. "
               + NEIGHBORHOOD_PROMPT;
 
-      PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
-      speech.setText(speechOutput);
-
-      Reprompt reprompt = new Reprompt();
-      reprompt.setOutputSpeech(speech);
-
-      return newAskResponse(speech, reprompt);
+      return buildAskResponse(speechOutput, null);
     }
 
 
     SocrataClient socrataClient = new SocrataClient(SOCRATA_TOKEN, SOCRATA_CRIME_API);
-    List<CrimeReport> crimeReports = socrataClient.getCrimeReports(neighborhood, dates);
+    //List<CrimeReport> crimeReports = socrataClient.getCrimeReports(neighborhood, dates);
     //Map<String, List> crimeReportsMap = filterCrimeReports(crimeReports);
 
     return null;
@@ -296,18 +283,11 @@ public class CincyDataSpeechlet implements Speechlet {
   /**
    * Retrieves the requested neighborhood slot value if it is supported, otherwises throws an exception.
    *
-   * @param intent Intent that holds slots
+   * @param neighborhood String requested neighborhood
    * @return requested neighborhood if exists, null otherwise
    * @throws NeighborhoodNotSupportedException throws Exception if neighborhood is not supported
    */
-  private String getNeighborHoodFromIntent(final Intent intent) throws NeighborhoodNotSupportedException {
-    String neighborhood = intent.getSlot(SLOT_NEIGHBORHOOD).getValue();
-
-    // neighborhood wasn't requested, return immediately
-    if(neighborhood == null) {
-      return null;
-    }
-
+  private String getNeighborHoodFromSlot(String  neighborhood) throws NeighborhoodNotSupportedException {
     List<String> neighborhoods = Neighborhoods.getNeighborhoods();
     boolean neighborhoodExists = neighborhoods.stream().anyMatch(s -> s.equalsIgnoreCase(neighborhood.replace(" +", " ")));
 
@@ -368,5 +348,28 @@ public class CincyDataSpeechlet implements Speechlet {
     }
 
     return crimeReportsMap;
+  }
+
+  /**
+   * Helper method for building a {@code SpeechletResponse}.
+   *
+   * @param speechOutput String plaintext output
+   * @param card Simplecard card
+   * @return SpeechletResponse with a card (if applicable)
+   */
+  private SpeechletResponse buildAskResponse(String speechOutput, SimpleCard card) {
+    // Create the plain text output.
+    PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
+    speech.setText(speechOutput);
+
+    // Create reprompt
+    Reprompt reprompt = new Reprompt();
+    reprompt.setOutputSpeech(speech);
+
+    if (card == null) {
+      return newAskResponse(speech, reprompt);
+    } else {
+      return newAskResponse(speech, reprompt, card);
+    }
   }
 }
