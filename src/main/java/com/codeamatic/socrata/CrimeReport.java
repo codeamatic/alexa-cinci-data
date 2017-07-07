@@ -7,6 +7,8 @@ import com.google.gson.annotations.SerializedName;
  */
 public class CrimeReport {
 
+  private String count;
+
   @SerializedName("addressstate")
   private String addressState;
 

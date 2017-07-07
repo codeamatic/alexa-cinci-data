@@ -75,25 +75,22 @@ public class SocrataClient implements Socrata {
    */
   private String getServiceQuery(String neighborhood, String dateRangeBegin, String dateRangeEnd) {
     String appToken = (this.token != null) ? "&$$app_token=" + this.token : "";
-    String query = "";
+    String query = "$select=offense,COUNT(offense) as count&$group=offense&$order=count";
+    String where = "";
 
     // specific neighborhood or all
     if(neighborhood != null && ! "all".equalsIgnoreCase(neighborhood)) {
-      query += "neighborhood = '" + neighborhood.toUpperCase() + "'";
+      where += "neighborhood = '" + neighborhood.toUpperCase() + "'";
     }
 
     // Only a single date has been queried
-    if(dateRangeBegin != null && dateRangeEnd == null) {
-      query = (query.isEmpty()) ? query : query + " AND ";
-      query += "occurredon = '" + dateRangeBegin + "'";
-    }
-    // Looking for a date range
-    else if(dateRangeBegin != null && dateRangeEnd != null) {
-      query = (query.isEmpty()) ? query : query + " AND ";
-      query += "occurredon >= '" + dateRangeBegin + "' AND occurredon <= '" + dateRangeEnd + "'";
+    if(dateRangeBegin != null && dateRangeEnd != null) {
+      where = (where.isEmpty()) ? where : where + " AND ";
+      where += "occurredon >= '" + dateRangeBegin + "' AND occurredon <= '" + dateRangeEnd + "'";
     }
 
-    query = (query.isEmpty()) ? query : "?$where=" + query + appToken;
+    where = (where.isEmpty()) ? appToken + "&$where=" + where : where;
+    query = query + where;
 
     return query.replace(" ", "%20");
   }

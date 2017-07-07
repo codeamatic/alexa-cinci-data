@@ -23,7 +23,12 @@ import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static com.amazon.speech.speechlet.SpeechletResponse.newAskResponse;
 
@@ -36,6 +41,8 @@ public class CincyDataSpeechlet implements Speechlet {
   private static final String SOCRATA_TOKEN = System.getenv("SOCRATA_CINCY_TOKEN");
   private static final String SOCRATA_CRIME_API = System.getenv("SOCRATA_CINCY_CRIME_API");
   private static final String SKILL_NAME = "Cincy Data";
+  private static final String TIME_START = "T00:00:00.000";
+  private static final String TIME_END = "T23:59:59:59.999";
 
   private static final String SLOT_NEIGHBORHOOD = "neighborhood";
   private static final String SLOT_DATE = "date";
@@ -182,7 +189,7 @@ public class CincyDataSpeechlet implements Speechlet {
 
     // Get the date requested
     try {
-      dates.add(getDateFromIntent(intent));
+      dates = getDatesFromIntent(intent);
     } catch(DateRangeException dex) {
       log.error("Date requested is in the future or not supported.", dex);
 
@@ -200,7 +207,7 @@ public class CincyDataSpeechlet implements Speechlet {
 
     // Get the date string request
     try {
-      dates = getDateFromDateStringIntent(intent);
+      dates = getDatesFromDateStringIntent(intent);
     } catch(Exception ex) {
       log.error("Date string request error.", ex);
 
@@ -219,6 +226,7 @@ public class CincyDataSpeechlet implements Speechlet {
 
     SocrataClient socrataClient = new SocrataClient(SOCRATA_TOKEN, SOCRATA_CRIME_API);
     List<CrimeReport> crimeReports = socrataClient.getCrimeReports(neighborhood, dates);
+    //Map<String, List> crimeReportsMap = filterCrimeReports(crimeReports);
 
     return null;
   }
@@ -258,18 +266,22 @@ public class CincyDataSpeechlet implements Speechlet {
    * @return String list of all supported neighborhoods
    */
   private String getAllNeighborhoods() {
-    StringBuilder neighborhoodsList = new StringBuilder();
+    StringBuilder stringBuilder = new StringBuilder();
 
     for(String neighborhood : Neighborhoods.getNeighborhoods()) {
-      neighborhoodsList.append(neighborhood);
-      neighborhoodsList.append(", ");
+      // Replace additional spaces in between words
+      String neighborhoodFormatted = neighborhood.trim().replaceAll(" +", " ");
+      stringBuilder.append(neighborhoodFormatted);
+      stringBuilder.append(", ");
     }
 
-    return neighborhoodsList.toString();
+    stringBuilder.delete(stringBuilder.lastIndexOf(","), stringBuilder.length());
+
+    return stringBuilder.toString();
   }
 
 
-  private List<String> getDateFromDateStringIntent(final Intent intent) throws DateStringNotSupportedException {
+  private List<String> getDatesFromDateStringIntent(final Intent intent) throws DateStringNotSupportedException, DateRangeException {
     String dateString = intent.getSlot(SLOT_DATE_STRING).getValue();
 
     // Date String wasn't requested, return immediately
@@ -277,7 +289,7 @@ public class CincyDataSpeechlet implements Speechlet {
       return null;
     }
 
-   // List<String> dateStringDates = DateStringUtil.getFormattedDate(dateString);
+   List<String> dateStringDates = DateStringUtil.getFormattedDates(dateString);
 
     return null;
   }
@@ -298,7 +310,7 @@ public class CincyDataSpeechlet implements Speechlet {
     }
 
     List<String> neighborhoods = Neighborhoods.getNeighborhoods();
-    boolean neighborhoodExists = neighborhoods.stream().anyMatch(s -> s.equalsIgnoreCase(neighborhood));
+    boolean neighborhoodExists = neighborhoods.stream().anyMatch(s -> s.equalsIgnoreCase(neighborhood.replace(" +", " ")));
 
     if(neighborhoodExists) {
       return neighborhood;
@@ -315,7 +327,7 @@ public class CincyDataSpeechlet implements Speechlet {
    * @return String date in string format
    * @throws DateRangeException thrown if the date provided is in the future
    */
-  private String getDateFromIntent(final Intent intent) throws DateRangeException {
+  private List<String> getDatesFromIntent(final Intent intent) throws DateRangeException {
     String alexaDate = intent.getSlot(SLOT_DATE).getValue();
 
     if(alexaDate == null) {
@@ -335,7 +347,27 @@ public class CincyDataSpeechlet implements Speechlet {
       throw new DateRangeException("Future date: " + socrataDate.toString());
     }
 
-    return socrataStringDate;
+    List<String> dateList = new ArrayList<>();
+    dateList.add(socrataStringDate + TIME_START);
+    dateList.add(socrataStringDate + TIME_END);
+
+    return dateList;
   }
 
+  private Map<String, List<CrimeReport>> filterCrimeReports(List<CrimeReport> crimeReportsList) {
+    Map<String, List<CrimeReport>> crimeReportsMap = new HashMap<>();
+
+    for(CrimeReport crimeReport : crimeReportsList) {
+      String offense = crimeReport.getOffense();
+
+      if(crimeReportsMap.containsKey(offense)) {
+        crimeReportsMap.get(offense).add(crimeReport);
+      } else {
+        // Add record to
+        crimeReportsMap.put(offense, Arrays.asList(crimeReport));
+      }
+    }
+
+    return crimeReportsMap;
+  }
 }
