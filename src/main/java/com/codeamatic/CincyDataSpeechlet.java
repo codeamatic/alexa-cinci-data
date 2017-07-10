@@ -181,7 +181,7 @@ public class CincyDataSpeechlet implements Speechlet {
       String speechOutput = "Sorry, crime and incident data is not supported for that neighborhood. "
                             + NEIGHBORHOOD_PROMPT;
 
-      return buildAskResponse(speechOutput, null);
+      return buildAskResponse(speechOutput, null, null);
     }
   }
 
@@ -194,7 +194,7 @@ public class CincyDataSpeechlet implements Speechlet {
       String speechOutput = "Sorry, crime and incident data is not supported for that date. "
               + NEIGHBORHOOD_PROMPT;
 
-      return buildAskResponse(speechOutput, null);
+      return buildAskResponse(speechOutput, null,null);
     }
 
     // Get the date string request
@@ -206,7 +206,7 @@ public class CincyDataSpeechlet implements Speechlet {
       String speechOutput = "Sorry, crime and incident data is not supported for that date. "
               + NEIGHBORHOOD_PROMPT;
 
-      return buildAskResponse(speechOutput, null);
+      return buildAskResponse(speechOutput, null,null);
     }
 
 
@@ -351,20 +351,28 @@ public class CincyDataSpeechlet implements Speechlet {
   }
 
   /**
-   * Helper method for building a {@code SpeechletResponse}.
+   * Helper method for building a {@code SpeechletResponse} for "Ask".
    *
    * @param speechOutput String plaintext output
+   * @param repromptText String reprompt text.  If set to null, then the speechOutput will be used for reprompt
    * @param card Simplecard card
    * @return SpeechletResponse with a card (if applicable)
    */
-  private SpeechletResponse buildAskResponse(String speechOutput, SimpleCard card) {
+  private SpeechletResponse buildAskResponse(String speechOutput, String repromptText, SimpleCard card) {
+    Reprompt reprompt = new Reprompt();
     // Create the plain text output.
     PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
     speech.setText(speechOutput);
 
-    // Create reprompt
-    Reprompt reprompt = new Reprompt();
-    reprompt.setOutputSpeech(speech);
+    // Set reprompt
+    if(repromptText != null) {
+      PlainTextOutputSpeech repromptSpeechOutput = new PlainTextOutputSpeech();
+      repromptSpeechOutput.setText(repromptText);
+
+      reprompt.setOutputSpeech(repromptSpeechOutput);
+    } else {
+      reprompt.setOutputSpeech(speech);
+    }
 
     if (card == null) {
       return newAskResponse(speech, reprompt);
