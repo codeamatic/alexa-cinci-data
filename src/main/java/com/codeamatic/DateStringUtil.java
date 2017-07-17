@@ -11,6 +11,9 @@ import java.util.List;
 
 public class DateStringUtil {
 
+  public static final String TIME_START = "T00:00:00.000";
+  public static final String TIME_END = "T23:59:59.999";
+
   private static final List<String> dateStrings = new ArrayList<String>();
 
   private DateStringUtil() {}
@@ -30,17 +33,21 @@ public class DateStringUtil {
     dateStrings.add("since thursday");
     dateStrings.add("since friday");
     dateStrings.add("since saturday");
+    dateStrings.add("this decade");
+    dateStrings.add("this year");
+    dateStrings.add("this week");
+    dateStrings.add("this month");
   }
 
   /**
    * Returns a start and end date for a date range given based on the date string.
    *
    * @param dateString String based date typically used when translating a date range in every conversation
-   * @return ArrayList of two dates for starting and ending range
+   * @return String of two dates for starting and ending range
    * @throws DateStringNotSupportedException if a date string is provided that is not yet supported
    * @throws DateRangeException thrown if start date is greater than end date
    */
-  public static List<String> getFormattedDates(String dateString) throws DateStringNotSupportedException, DateRangeException {
+  public static String[] getFormattedDates(String dateString) throws DateStringNotSupportedException, DateRangeException {
 
     if(! dateStringExists(dateString)) {
       throw new DateStringNotSupportedException("Date String: " + dateString);
@@ -110,9 +117,9 @@ public class DateStringUtil {
       throw new DateRangeException("Start date: " + startDate.toString() + " End date: " + endDate.toString());
     }
 
-    List<String> dates = new ArrayList<>();
-    dates.add(startDate.toString());
-    dates.add(endDate.toString());
+    String[] dates = new String[2];
+    dates[0] = startDate.toString();
+    dates[1] = endDate.toString();
 
     return dates;
   }

@@ -20,5 +20,5 @@ public interface Socrata {
    *
    * @return a list of crime reports
    */
-  List<CrimeReport> getCrimeReports(String neighborhood, List<String> dates);
+  List<CrimeReport> getCrimeReports(String neighborhood, String[] dates);
 }

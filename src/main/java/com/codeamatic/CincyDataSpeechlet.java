@@ -14,7 +14,6 @@ import com.amazon.speech.ui.Reprompt;
 import com.amazon.speech.ui.SimpleCard;
 import com.codeamatic.exceptions.DateRangeException;
 import com.codeamatic.exceptions.DateStringNotSupportedException;
-import com.codeamatic.exceptions.NeighborhoodNotSupportedException;
 import com.codeamatic.socrata.CrimeReport;
 import com.codeamatic.socrata.support.SocrataClient;
 
@@ -22,8 +21,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
+import java.time.Period;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -41,14 +40,11 @@ public class CincyDataSpeechlet implements Speechlet {
   private static final String SOCRATA_CRIME_API = System.getenv("SOCRATA_CINCY_CRIME_API");
   private static final String SKILL_NAME = "Cincy Data";
 
-  private static final String TIME_START = "T00:00:00.000";
-  private static final String TIME_END = "T23:59:59.999";
-
   private static final String SLOT_NEIGHBORHOOD = "neighborhood";
   private static final String SLOT_DATE = "date";
   private static final String SLOT_DATE_STRING = "date_string";
 
-  private static final String NEIGHBORHOOD_PROMPT = "Which neighborhood would you like a crime report for?";
+  private static final String NEIGHBORHOOD_PROMPT = "Which neighborhood and date would you like a crime report for?";
 
   @Override
   public void onSessionStarted(SessionStartedRequest request, Session session) throws SpeechletException {
@@ -166,55 +162,64 @@ public class CincyDataSpeechlet implements Speechlet {
    * @return SpeechletResponse  spoken and visual response for crime report intent
    */
   private SpeechletResponse getCrimeReportResponse(final Intent intent) {
-    String neighborhoodSlot = intent.getSlot(SLOT_NEIGHBORHOOD).getValue();
-    String alexaDateSlot = intent.getSlot(SLOT_DATE).getValue();
-    String alexaDateStringSlot = intent.getSlot(SLOT_DATE_STRING).getValue();
-    List<String> dates = null;
+    String neighborhood = intent.getSlot(SLOT_NEIGHBORHOOD).getValue();
+    String alexaDate = intent.getSlot(SLOT_DATE).getValue();
+    String alexaDateString = intent.getSlot(SLOT_DATE_STRING).getValue();
+    String[] dates;
 
-  if(neighborhoodSlot != null) {
-    // Get the Neighborhood requested
-    try {
-      String neighborhood = getNeighborHoodFromSlot(neighborhoodSlot);
-    } catch (NeighborhoodNotSupportedException nex) {
-      log.error("Neighborhood not supported.", nex);
+    if(neighborhood != null) {
+      // Get the Neighborhood requested
+      boolean validNeighborhood = validateNeighborHoodFromSlot(neighborhood);
 
-      String speechOutput = "Sorry, crime and incident data is not supported for that neighborhood. "
-                            + NEIGHBORHOOD_PROMPT;
+      if(! validNeighborhood) {
+        log.error("Neighborhood not supported.", neighborhood);
 
-      return buildAskResponse(speechOutput, null, null);
-    }
-  }
+        String speechOutput = "Sorry, crime and incident data is not supported for that neighborhood. "
+                              + NEIGHBORHOOD_PROMPT;
 
-    // Get the date requested
-    try {
-      dates = getDatesFromIntent(intent);
-    } catch(DateRangeException dex) {
-      log.error("Date requested is in the future or not supported.", dex);
-
-      String speechOutput = "Sorry, crime and incident data is not supported for that date. "
-              + NEIGHBORHOOD_PROMPT;
-
-      return buildAskResponse(speechOutput, null,null);
+        return buildAskResponse(speechOutput, null, null);
+      }
     }
 
-    // Get the date string request
-    try {
-      dates = getDatesFromDateStringIntent(intent);
-    } catch(Exception ex) {
-      log.error("Date string request error.", ex);
+    // Get the date requested using the Alexa date intent
+    if(alexaDate != null) {
+      try {
+        dates = getDatesFromSlot(alexaDate);
+      } catch(DateRangeException dex) {
+        log.error("Date requested is not supported.", dex);
 
-      String speechOutput = "Sorry, crime and incident data is not supported for that date. "
-              + NEIGHBORHOOD_PROMPT;
+        String speechOutput = "Sorry, crime and incident data is not supported for that date. "
+                              + NEIGHBORHOOD_PROMPT;
 
-      return buildAskResponse(speechOutput, null,null);
+        return buildAskResponse(speechOutput, null,null);
+      }
     }
+    // Custom data slot intent
+    else if(alexaDateString != null) {
+      try {
+        dates = getDatesFromDateString(alexaDateString);
+      } catch (Exception ex) {
+        log.error("Date string request error.", ex);
 
+        String speechOutput = "Sorry, crime and incident data is not supported for that date. "
+                              + NEIGHBORHOOD_PROMPT;
+
+        return buildAskResponse(speechOutput, null, null);
+      }
+    }
+    else {
+      // No date was queried, default to yesterday
+      LocalDate yesterday = LocalDate.now().minus(Period.ofDays(1));
+      dates = new String[2];
+      dates[0] = yesterday.toString();
+      dates[1] = dates[0];
+    }
 
     SocrataClient socrataClient = new SocrataClient(SOCRATA_TOKEN, SOCRATA_CRIME_API);
-    //List<CrimeReport> crimeReports = socrataClient.getCrimeReports(neighborhood, dates);
-    //Map<String, List> crimeReportsMap = filterCrimeReports(crimeReports);
+    List<CrimeReport> crimeReports = socrataClient.getCrimeReports(neighborhood, dates);
+    String outputVerbiage = this.generateSpeechOutput(crimeReports, neighborhood, dates);
 
-    return null;
+    return buildAskResponse(outputVerbiage, null, null);
   }
 
   /**
@@ -266,18 +271,19 @@ public class CincyDataSpeechlet implements Speechlet {
     return stringBuilder.toString();
   }
 
-
-  private List<String> getDatesFromDateStringIntent(final Intent intent) throws DateStringNotSupportedException, DateRangeException {
-    String dateString = intent.getSlot(SLOT_DATE_STRING).getValue();
-
-    // Date String wasn't requested, return immediately
-    if(dateString == null) {
-      return null;
-    }
-
-   List<String> dateStringDates = DateStringUtil.getFormattedDates(dateString);
-
-    return null;
+  /**
+   * Retrieve a date or dates requested by the user, but mapped to a custom  slot.
+   * This differs from the default date slot by allowing for the use of date ranges.
+   *
+   *  Example: "Since last tuesday" => last tuesday through now
+   *
+   * @param dateString String that holds the current mapped custom slot.
+   * @return String date range
+   * @throws DateStringNotSupportedException When a date is not supported
+   * @throws DateRangeException When a date is in the future
+   */
+  private String[] getDatesFromDateString(String dateString) throws DateStringNotSupportedException, DateRangeException {
+    return DateStringUtil.getFormattedDates(dateString);
   }
 
   /**
@@ -285,34 +291,21 @@ public class CincyDataSpeechlet implements Speechlet {
    *
    * @param neighborhood String requested neighborhood
    * @return requested neighborhood if exists, null otherwise
-   * @throws NeighborhoodNotSupportedException throws Exception if neighborhood is not supported
    */
-  private String getNeighborHoodFromSlot(String  neighborhood) throws NeighborhoodNotSupportedException {
+  private boolean validateNeighborHoodFromSlot(String  neighborhood) {
     List<String> neighborhoods = Neighborhoods.getNeighborhoods();
-    boolean neighborhoodExists = neighborhoods.stream().anyMatch(s -> s.equalsIgnoreCase(neighborhood.replace(" +", " ")));
-
-    if(neighborhoodExists) {
-      return neighborhood;
-    } else {
-      // requested neighborhood isn't available
-      throw new NeighborhoodNotSupportedException(neighborhood);
-    }
+    return neighborhoods.stream().anyMatch(s -> s.equalsIgnoreCase(neighborhood.replace(" +", " ")));
   }
 
   /**
-   * Retrieves the requested date, if applicable.
+   * Retrieves the requested date, if applicable.  Returns date in the format
+   * YYYY-MM-DD::YYYY-MM-DD where the second date represents the end date (or today).
    *
-   * @param intent Intent that holds slots
+   * @param alexaDate String that holds the current Alexa default date slot
    * @return String date in string format
    * @throws DateRangeException thrown if the date provided is in the future
    */
-  private List<String> getDatesFromIntent(final Intent intent) throws DateRangeException {
-    String alexaDate = intent.getSlot(SLOT_DATE).getValue();
-
-    if(alexaDate == null) {
-      return null;
-    }
-
+  private String[] getDatesFromSlot(String alexaDate) throws DateRangeException {
     String socrataStringDate = AlexaDateUtil.getFormattedDate(alexaDate);
 
     if(socrataStringDate == null) {
@@ -326,13 +319,17 @@ public class CincyDataSpeechlet implements Speechlet {
       throw new DateRangeException("Future date: " + socrataDate.toString());
     }
 
-    List<String> dateList = new ArrayList<>();
-    dateList.add(socrataStringDate + TIME_START);
-    dateList.add(socrataStringDate + TIME_END);
+    String[] dates = new String[2];
+    dates[0] = socrataStringDate + DateStringUtil.TIME_START;
 
-    return dateList;
+    return dates;
   }
 
+  /**
+   *
+   * @param crimeReportsList
+   * @return
+   */
   private Map<String, List<CrimeReport>> filterCrimeReports(List<CrimeReport> crimeReportsList) {
     Map<String, List<CrimeReport>> crimeReportsMap = new HashMap<>();
 
@@ -379,5 +376,29 @@ public class CincyDataSpeechlet implements Speechlet {
     } else {
       return newAskResponse(speech, reprompt, card);
     }
+  }
+
+  /**
+   * Generates the verbiage output for a successful crime report query.
+   *
+   * @param crimeReports List of crime reports
+   * @param neighborhood String the neighborhood queried
+   * @param dates Array of Strings queried
+   * @return String
+   */
+  private String generateSpeechOutput(List<CrimeReport> crimeReports, String neighborhood, String[] dates) {
+      int numReports = crimeReports.size();
+      String location = (neighborhood != null) ? neighborhood : "Cincinnati";
+      String dateSubtext = (dates[1] != null) ? dates[0] + " to " + dates[1] : dates[0];
+
+      String output = "There were " + numReports + " crimes reported in " + location;
+      output += (dates[1] != null) ? " from " : " on ";
+      output += dateSubtext;
+
+      return output;
+  }
+
+  private String generateSpeechCard(List<CrimeReport> crimeReports) {
+    return "";
   }
 }

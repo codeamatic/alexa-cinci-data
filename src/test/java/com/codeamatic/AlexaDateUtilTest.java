@@ -33,12 +33,6 @@ public class AlexaDateUtilTest  {
   }
 
   @Test
-  public void testWeekFormatted() {
-    String testDate = "2017-W23";
-    assertEquals("2017-06-05", AlexaDateUtil.getFormattedDate(testDate));
-  }
-
-  @Test
   public void testWeekendFormatted() {
     String testDate = "2017-W23-WE";
     assertEquals(null, AlexaDateUtil.getFormattedDate(testDate));

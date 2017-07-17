@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import com.codeamatic.CincyDataSpeechlet;
+import com.codeamatic.DateStringUtil;
 import com.codeamatic.socrata.CrimeReport;
 import com.codeamatic.socrata.Socrata;
 
@@ -13,6 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URL;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -43,14 +45,19 @@ public class SocrataClient implements Socrata {
   /**
    * {@inheritDoc}
    */
-  public List<CrimeReport> getCrimeReports(String neighborhood, List<String> dates) {
+  public List<CrimeReport> getCrimeReports(String neighborhood, String[] dates) {
     CrimeReport[] crimeReports = null;
+
+    if(dates[1] == null) {
+      dates[1] = LocalDate.now().toString() + DateStringUtil.TIME_END;
+    }
+
     String dateRangeBegin = null;
     String dateRangeEnd = null;
 
     if(dates != null) {
-      dateRangeBegin = dates.get(0);
-      dateRangeEnd = dates.get(1);
+      dateRangeBegin = dates[0];
+      dateRangeEnd = dates[1];
     }
 
     String query = this.getServiceQuery(neighborhood, dateRangeBegin, dateRangeEnd);
