@@ -33,10 +33,6 @@ public class DateStringUtil {
     dateStrings.add("since thursday");
     dateStrings.add("since friday");
     dateStrings.add("since saturday");
-    dateStrings.add("this decade");
-    dateStrings.add("this year");
-    dateStrings.add("this week");
-    dateStrings.add("this month");
   }
 
   /**

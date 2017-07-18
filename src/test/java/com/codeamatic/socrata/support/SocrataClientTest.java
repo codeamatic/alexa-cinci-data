@@ -24,7 +24,7 @@ public class SocrataClientTest extends TestCase {
   @Override
   protected void setUp() throws Exception {
     sameDayDatesArray[0] ="2011-09-22" + TIME_START;
-    //sameDayDatesArray[1] ="2011-09-22" + TIME_END;
+    sameDayDatesArray[1] ="2011-09-22" + TIME_END;
 
     diffDateDateArray[0] = "2011-09-22" + TIME_START;
     diffDateDateArray[1] = "2011-09-24" + TIME_END;
