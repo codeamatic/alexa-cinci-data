@@ -95,7 +95,7 @@ public class CincyDataSpeechlet implements Speechlet {
     String neighborhoodPrompt = NEIGHBORHOOD_PROMPT;
     String speechText = "Welcome to the " + SKILL_NAME + " skill. "
             + "You can get crime and incident data for neighborhoods in the city of Cincinnati. "
-            + "For example, you can say, give me yesterday's crime report for Avondale. "
+            + "For example, you can say, give me a crime report for Avondale. "
             + "For a list of supported neighborhoods, ask what neighborhoods are supported. "
             + "For additional instructions on what you can say, say help me. "
             + neighborhoodPrompt;
@@ -105,15 +105,7 @@ public class CincyDataSpeechlet implements Speechlet {
     card.setTitle(SKILL_NAME);
     card.setContent(speechText);
 
-    // Create the plain text output.
-    PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
-    speech.setText(neighborhoodPrompt);
-
-    // Create reprompt
-    Reprompt reprompt = new Reprompt();
-    reprompt.setOutputSpeech(speech);
-
-    return newAskResponse(speech, reprompt, card);
+    return buildAskResponse(neighborhoodPrompt, null, card);
   }
 
   /**
@@ -217,7 +209,7 @@ public class CincyDataSpeechlet implements Speechlet {
 
     SocrataClient socrataClient = new SocrataClient(SOCRATA_TOKEN, SOCRATA_CRIME_API);
     List<CrimeReport> crimeReports = socrataClient.getCrimeReports(neighborhood, dates);
-    String outputVerbiage = this.generateSpeechOutput(crimeReports, neighborhood, dates);
+    String outputVerbiage = this.generateSpeechOutput(crimeReports, neighborhood);
 
     return buildAskResponse(outputVerbiage, null, null);
   }
@@ -383,19 +375,13 @@ public class CincyDataSpeechlet implements Speechlet {
    *
    * @param crimeReports List of crime reports
    * @param neighborhood String the neighborhood queried
-   * @param dates Array of Strings queried
    * @return String
    */
-  private String generateSpeechOutput(List<CrimeReport> crimeReports, String neighborhood, String[] dates) {
+  private String generateSpeechOutput(List<CrimeReport> crimeReports, String neighborhood) {
       int numReports = crimeReports.size();
       String location = (neighborhood != null) ? neighborhood : "Cincinnati";
-      String dateSubtext = (dates[1] != null) ? dates[0] + " to " + dates[1] : dates[0];
 
-      String output = "There were " + numReports + " crimes reported in " + location;
-      output += (dates[1] != null) ? " from " : " on ";
-      output += dateSubtext;
-
-      return output;
+      return "There were " + numReports + " crimes reported in " + location;
   }
 
   private String generateSpeechCard(List<CrimeReport> crimeReports) {

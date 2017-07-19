@@ -55,10 +55,8 @@ public class SocrataClient implements Socrata {
     String dateRangeBegin = null;
     String dateRangeEnd = null;
 
-    if(dates != null) {
-      dateRangeBegin = dates[0];
-      dateRangeEnd = dates[1];
-    }
+    dateRangeBegin = dates[0];
+    dateRangeEnd = dates[1];
 
     String query = this.getServiceQuery(neighborhood, dateRangeBegin, dateRangeEnd);
     String urlString = this.serviceUrl + query;
