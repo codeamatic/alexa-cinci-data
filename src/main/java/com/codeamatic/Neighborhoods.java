@@ -78,16 +78,25 @@ public final class Neighborhoods {
   }
 
   /**
-   * Determines if a neighborhood exists.
+   * Determines whether or not the spoken "neighborhood" has a phonetic match
+   * that can be used by Socrata.
    *
-   * Removes any double spaces from the supported list before confirming.
+   * Example: Mount Washington => Mount  Washington (with two spaces)
+   * Example: Mount Washington => Mount  Washington (with two spaces)
    *
-   * @param neighborhood String
-   * @return boolean
+   * @param neighborhood String the neighborhood as spoken by the user
+   * @return The raw neighborhood or null if it can't be found
    */
-  public static boolean exists(String neighborhood) {
-    return neighborhoods.stream()
-                                              .map(s -> s.replaceAll(" +", " "))
-                                              .anyMatch(s -> s.equalsIgnoreCase(neighborhood));
+  public static String getNeighborhood(String neighborhood) {
+
+    for(String rawNeighborhood : neighborhoods) {
+      String replNeighborhood = rawNeighborhood.replaceAll("[ -]+", " ");
+
+      if(neighborhood.equalsIgnoreCase(replNeighborhood)) {
+        return rawNeighborhood;
+      }
+    }
+
+    return null;
   }
 }
