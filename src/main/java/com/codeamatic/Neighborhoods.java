@@ -76,4 +76,18 @@ public final class Neighborhoods {
   public static List<String> getNeighborhoods() {
     return neighborhoods;
   }
+
+  /**
+   * Determines if a neighborhood exists.
+   *
+   * Removes any double spaces from the supported list before confirming.
+   *
+   * @param neighborhood String
+   * @return boolean
+   */
+  public static boolean exists(String neighborhood) {
+    return neighborhoods.stream()
+                                              .map(s -> s.replaceAll(" +", " "))
+                                              .anyMatch(s -> s.equalsIgnoreCase(neighborhood));
+  }
 }
