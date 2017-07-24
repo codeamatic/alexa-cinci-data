@@ -11,9 +11,6 @@ import java.util.List;
 
 public class DateStringUtil {
 
-  public static final String TIME_START = "T00:00:00.000";
-  public static final String TIME_END = "T23:59:59.999";
-
   private static final List<String> dateStrings = new ArrayList<String>();
 
   private DateStringUtil() {}

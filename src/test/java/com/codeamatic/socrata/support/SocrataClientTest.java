@@ -16,18 +16,16 @@ public class SocrataClientTest extends TestCase {
 
   private static final String API_TOKEN = null;
   private static final String API_URL = "https://data.cincinnati-oh.gov/resource/4qzi-nepn.json";
-  private static final String TIME_START = "T00:00:00.000";
-  private static final String TIME_END = "T23:59:59.999";
   private String[] sameDayDatesArray = new String[2];
   private String[] diffDateDateArray = new String[2];
 
   @Override
   protected void setUp() throws Exception {
-    sameDayDatesArray[0] ="2011-09-22" + TIME_START;
-    sameDayDatesArray[1] ="2011-09-22" + TIME_END;
+    sameDayDatesArray[0] ="2011-09-22";
+    sameDayDatesArray[1] ="2011-09-22";
 
-    diffDateDateArray[0] = "2011-09-22" + TIME_START;
-    diffDateDateArray[1] = "2011-09-24" + TIME_END;
+    diffDateDateArray[0] = "2011-09-22";
+    diffDateDateArray[1] = "2011-09-24";
   }
 
   public void testCrimeReportBase() {
@@ -48,7 +46,7 @@ public class SocrataClientTest extends TestCase {
   @Test
   public void testCrimeReportNeighborhood() {
     SocrataClient socrataClient = new SocrataClient(API_TOKEN, API_URL);
-    List<CrimeReport> crimeReportList = socrataClient.getCrimeReports("avondale", null);
+    List<CrimeReport> crimeReportList = socrataClient.getCrimeReports("mount washington", null);
 
     assertTrue(crimeReportList.size() > 0);
   }

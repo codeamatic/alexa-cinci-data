@@ -12,6 +12,7 @@ import com.amazon.speech.speechlet.SpeechletResponse;
 import com.amazon.speech.ui.PlainTextOutputSpeech;
 import com.amazon.speech.ui.Reprompt;
 import com.amazon.speech.ui.SimpleCard;
+import com.amazon.speech.ui.SsmlOutputSpeech;
 import com.codeamatic.exceptions.DateRangeException;
 import com.codeamatic.exceptions.DateStringNotSupportedException;
 import com.codeamatic.socrata.CrimeReport;
@@ -21,14 +22,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
-import java.time.Period;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import static com.amazon.speech.speechlet.SpeechletResponse.newAskResponse;
+import static com.amazon.speech.speechlet.SpeechletResponse.newTellResponse;
 
 /**
  * Cinci Data Speechlet for handling Alexa Speechlet requests.
@@ -117,7 +115,7 @@ public class CincyDataSpeechlet implements Speechlet {
     PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
     speech.setText("Goodbye!");
 
-    return SpeechletResponse.newTellResponse(speech);
+    return newTellResponse(speech);
   }
 
   /**
@@ -154,17 +152,18 @@ public class CincyDataSpeechlet implements Speechlet {
    * @return SpeechletResponse  spoken and visual response for crime report intent
    */
   private SpeechletResponse getCrimeReportResponse(final Intent intent) {
-    String neighborhood = intent.getSlot(SLOT_NEIGHBORHOOD).getValue();
+    String neighborhoodSlotValue = intent.getSlot(SLOT_NEIGHBORHOOD).getValue();
+    String neighborhood = null;
     String alexaDate = intent.getSlot(SLOT_DATE).getValue();
     String alexaDateString = intent.getSlot(SLOT_DATE_STRING).getValue();
-    String[] dates;
+    String[] dates = null;
 
-    if(neighborhood != null) {
+    if(neighborhoodSlotValue != null) {
       // Get the Neighborhood requested
-      boolean validNeighborhood = validateNeighborHoodFromSlot(neighborhood);
+      neighborhood = Neighborhoods.getNeighborhood(neighborhoodSlotValue);
 
-      if(! validNeighborhood) {
-        log.error("Neighborhood not supported.", neighborhood);
+      if(neighborhood == null) {
+        log.error("Neighborhood not supported.", neighborhoodSlotValue);
 
         String speechOutput = "Sorry, crime and incident data is not supported for that neighborhood. "
                               + NEIGHBORHOOD_PROMPT;
@@ -199,19 +198,13 @@ public class CincyDataSpeechlet implements Speechlet {
         return buildAskResponse(speechOutput, null, null);
       }
     }
-    else {
-      // No date was queried, default to yesterday
-      LocalDate yesterday = LocalDate.now().minus(Period.ofDays(1));
-      dates = new String[2];
-      dates[0] = yesterday.toString();
-      dates[1] = dates[0];
-    }
 
     SocrataClient socrataClient = new SocrataClient(SOCRATA_TOKEN, SOCRATA_CRIME_API);
     List<CrimeReport> crimeReports = socrataClient.getCrimeReports(neighborhood, dates);
+
     String outputVerbiage = this.generateSpeechOutput(crimeReports, neighborhood);
 
-    return buildAskResponse(outputVerbiage, null, null);
+    return buildTellResponse(outputVerbiage, null);
   }
 
   /**
@@ -221,7 +214,7 @@ public class CincyDataSpeechlet implements Speechlet {
    */
   private SpeechletResponse getSupportedNeighborhoodsResponse() {
     String repromptText = "Which neighborhood would you like a crime report for?";
-    String speechOutputText = "Currently, I have crime and incident data for the following Cincinnati neighborhoods: "
+    String speechOutputText = "<p>Currently, I have crime and incident data for the following Cincinnati neighborhoods:</p> "
             + getAllNeighborhoods() + repromptText;
 
     // Card
@@ -229,18 +222,7 @@ public class CincyDataSpeechlet implements Speechlet {
     card.setTitle(SKILL_NAME + " - Neighborhoods");
     card.setContent(speechOutputText);
 
-    // Plaintext Original Speech
-    PlainTextOutputSpeech speechOutput = new PlainTextOutputSpeech();
-    speechOutput.setText(speechOutputText);
-
-    // Plaintext Reprompt Speech
-    PlainTextOutputSpeech repromptSpeechOutput = new PlainTextOutputSpeech();
-    repromptSpeechOutput.setText(repromptText);
-
-    Reprompt repromptOutput = new Reprompt();
-    repromptOutput.setOutputSpeech(repromptSpeechOutput);
-
-    return newAskResponse(speechOutput, repromptOutput, card);
+    return buildAskResponse(speechOutputText, repromptText, card);
   }
 
   /**
@@ -279,17 +261,6 @@ public class CincyDataSpeechlet implements Speechlet {
   }
 
   /**
-   * Retrieves the requested neighborhood slot value if it is supported, otherwises throws an exception.
-   *
-   * @param neighborhood String requested neighborhood
-   * @return requested neighborhood if exists, null otherwise
-   */
-  private boolean validateNeighborHoodFromSlot(String  neighborhood) {
-    List<String> neighborhoods = Neighborhoods.getNeighborhoods();
-    return neighborhoods.stream().anyMatch(s -> s.equalsIgnoreCase(neighborhood.replace(" +", " ")));
-  }
-
-  /**
    * Retrieves the requested date, if applicable.  Returns date in the format
    * YYYY-MM-DD::YYYY-MM-DD where the second date represents the end date (or today).
    *
@@ -312,31 +283,49 @@ public class CincyDataSpeechlet implements Speechlet {
     }
 
     String[] dates = new String[2];
-    dates[0] = socrataStringDate + DateStringUtil.TIME_START;
+    dates[0] = socrataStringDate;
 
     return dates;
   }
 
+//  /**
+//   *
+//   * @param crimeReportsList
+//   * @return
+//   */
+//  private Map<String, List<CrimeReport>> filterCrimeReports(List<CrimeReport> crimeReportsList) {
+//    Map<String, List<CrimeReport>> crimeReportsMap = new HashMap<>();
+//
+//    for(CrimeReport crimeReport : crimeReportsList) {
+//      String offense = crimeReport.getOffense();
+//
+//      if(crimeReportsMap.containsKey(offense)) {
+//        crimeReportsMap.get(offense).add(crimeReport);
+//      } else {
+//        // Add record to
+//        crimeReportsMap.put(offense, Arrays.asList(crimeReport));
+//      }
+//    }
+//
+//    return crimeReportsMap;
+//  }
+
   /**
-   *
-   * @param crimeReportsList
-   * @return
+   * Helper method for building a {@code SpeechletResponse} for "Tell".
+   * @param speechOutput
+   * @param card
+   * @return SpeechletResponse with a card (if applicable)
    */
-  private Map<String, List<CrimeReport>> filterCrimeReports(List<CrimeReport> crimeReportsList) {
-    Map<String, List<CrimeReport>> crimeReportsMap = new HashMap<>();
+  private SpeechletResponse buildTellResponse(String speechOutput, SimpleCard card) {
+    // Create the ssml text output.
+    SsmlOutputSpeech speech = new SsmlOutputSpeech();
+    speech.setSsml(speechOutput);
 
-    for(CrimeReport crimeReport : crimeReportsList) {
-      String offense = crimeReport.getOffense();
-
-      if(crimeReportsMap.containsKey(offense)) {
-        crimeReportsMap.get(offense).add(crimeReport);
-      } else {
-        // Add record to
-        crimeReportsMap.put(offense, Arrays.asList(crimeReport));
-      }
+    if (card == null) {
+      return newTellResponse(speech);
+    } else {
+      return newTellResponse(speech, card);
     }
-
-    return crimeReportsMap;
   }
 
   /**
@@ -349,9 +338,9 @@ public class CincyDataSpeechlet implements Speechlet {
    */
   private SpeechletResponse buildAskResponse(String speechOutput, String repromptText, SimpleCard card) {
     Reprompt reprompt = new Reprompt();
-    // Create the plain text output.
-    PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
-    speech.setText(speechOutput);
+    // Create the ssml text output.
+    SsmlOutputSpeech speech = new SsmlOutputSpeech();
+    speech.setSsml(speechOutput);
 
     // Set reprompt
     if(repromptText != null) {
@@ -378,10 +367,27 @@ public class CincyDataSpeechlet implements Speechlet {
    * @return String
    */
   private String generateSpeechOutput(List<CrimeReport> crimeReports, String neighborhood) {
-      int numReports = crimeReports.size();
+      int numReports = getCrimeReportCount(crimeReports);
+      String reportCount = (numReports > 0) ? Integer.toString(numReports) : "no";
       String location = (neighborhood != null) ? neighborhood : "Cincinnati";
 
-      return "There were " + numReports + " crimes reported in " + location;
+      return "There were " + reportCount + " crimes reported in " + location + ".";
+  }
+
+  /**
+   * Retrieve the total number of incidents across all offenses.
+   *
+   * @param crimeReports List of crime reports reported
+   * @return a total count of incidents
+   */
+  private int getCrimeReportCount(List<CrimeReport> crimeReports) {
+    int count = 0;
+
+    for(CrimeReport crimeReport : crimeReports) {
+      count += Integer.parseInt(crimeReport.getCount());
+    }
+
+    return count;
   }
 
   private String generateSpeechCard(List<CrimeReport> crimeReports) {
