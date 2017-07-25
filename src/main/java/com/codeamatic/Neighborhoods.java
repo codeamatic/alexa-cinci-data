@@ -36,7 +36,7 @@ public final class Neighborhoods {
     neighborhoods.add("Fay Apartments");
     neighborhoods.add("Hartwell");
     neighborhoods.add("Hyde Park");
-    neighborhoods.add("Kennedy Heights");
+    neighborhoods.add("Kennedy  Heights");
     neighborhoods.add("Linwood");
     neighborhoods.add("Lower Price  Hill");
     neighborhoods.add("Madisonville");
@@ -44,10 +44,10 @@ public final class Neighborhoods {
     neighborhoods.add("Mount  Adams");
     neighborhoods.add("Mount Airy");
     neighborhoods.add("Mount  Auburn");
-    neighborhoods.add("Mount  Lookout");
-    neighborhoods.add("Mount  Washington");
+    neighborhoods.add("Mt.  Lookout");
+    neighborhoods.add("Mt.  Washington");
     neighborhoods.add("North Avondale");
-    neighborhoods.add("Paddock Hills");
+    neighborhoods.add("Paddock  Hills");
     neighborhoods.add("North Fairmount");
     neighborhoods.add("Northside");
     neighborhoods.add("O'Bryonville");
