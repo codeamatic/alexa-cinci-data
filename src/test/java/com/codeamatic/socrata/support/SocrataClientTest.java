@@ -46,9 +46,9 @@ public class SocrataClientTest extends TestCase {
   @Test
   public void testCrimeReportNeighborhood() {
     SocrataClient socrataClient = new SocrataClient(API_TOKEN, API_URL);
-    List<CrimeReport> crimeReportList = socrataClient.getCrimeReports("mount washington", null);
+    List<CrimeReport> crimeReportList = socrataClient.getCrimeReports("avondale", null);
 
-    assertTrue(crimeReportList.size() > 0);
+    assertNotNull(crimeReportList);
   }
 
   @Test

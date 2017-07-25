@@ -81,8 +81,8 @@ public final class Neighborhoods {
    * Determines whether or not the spoken "neighborhood" has a phonetic match
    * that can be used by Socrata.
    *
-   * Example: Mount Washington => Mount  Washington (with two spaces)
-   * Example: Mount Washington => Mount  Washington (with two spaces)
+   * Example: Mount Washington => Mt.  Washington (with two spaces and abbreviation)
+   * Example: Mount Adams => Mount  Adams (with two spaces)
    *
    * @param neighborhood String the neighborhood as spoken by the user
    * @return The raw neighborhood or null if it can't be found
@@ -91,6 +91,7 @@ public final class Neighborhoods {
 
     for(String rawNeighborhood : neighborhoods) {
       String replNeighborhood = rawNeighborhood.replaceAll("[ -]+", " ");
+      replNeighborhood = replNeighborhood.replaceAll("(?i)mt.", "mount");
 
       if(neighborhood.equalsIgnoreCase(replNeighborhood)) {
         return rawNeighborhood;

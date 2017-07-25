@@ -3,7 +3,6 @@ package com.codeamatic.socrata.support;
 import com.google.gson.GsonBuilder;
 
 import com.codeamatic.CincyDataSpeechlet;
-import com.codeamatic.DateStringUtil;
 import com.codeamatic.socrata.CrimeReport;
 import com.codeamatic.socrata.Socrata;
 

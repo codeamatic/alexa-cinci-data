@@ -153,9 +153,9 @@ public class CincyDataSpeechlet implements Speechlet {
    */
   private SpeechletResponse getCrimeReportResponse(final Intent intent) {
     String neighborhoodSlotValue = intent.getSlot(SLOT_NEIGHBORHOOD).getValue();
-    String neighborhood = null;
     String alexaDate = intent.getSlot(SLOT_DATE).getValue();
     String alexaDateString = intent.getSlot(SLOT_DATE_STRING).getValue();
+    String neighborhood = null;
     String[] dates = null;
 
     if(neighborhoodSlotValue != null) {
@@ -203,8 +203,9 @@ public class CincyDataSpeechlet implements Speechlet {
     List<CrimeReport> crimeReports = socrataClient.getCrimeReports(neighborhood, dates);
 
     String outputVerbiage = this.generateSpeechOutput(crimeReports, neighborhood);
+    SimpleCard card = this.generateSpeechCard(crimeReports, neighborhood);
 
-    return buildTellResponse(outputVerbiage, null);
+    return buildTellResponse(outputVerbiage, card);
   }
 
   /**
@@ -288,32 +289,10 @@ public class CincyDataSpeechlet implements Speechlet {
     return dates;
   }
 
-//  /**
-//   *
-//   * @param crimeReportsList
-//   * @return
-//   */
-//  private Map<String, List<CrimeReport>> filterCrimeReports(List<CrimeReport> crimeReportsList) {
-//    Map<String, List<CrimeReport>> crimeReportsMap = new HashMap<>();
-//
-//    for(CrimeReport crimeReport : crimeReportsList) {
-//      String offense = crimeReport.getOffense();
-//
-//      if(crimeReportsMap.containsKey(offense)) {
-//        crimeReportsMap.get(offense).add(crimeReport);
-//      } else {
-//        // Add record to
-//        crimeReportsMap.put(offense, Arrays.asList(crimeReport));
-//      }
-//    }
-//
-//    return crimeReportsMap;
-//  }
-
   /**
    * Helper method for building a {@code SpeechletResponse} for "Tell".
-   * @param speechOutput
-   * @param card
+   * @param speechOutput String plaintext output
+   * @param card Simplecard card
    * @return SpeechletResponse with a card (if applicable)
    */
   private SpeechletResponse buildTellResponse(String speechOutput, SimpleCard card) {
@@ -360,21 +339,6 @@ public class CincyDataSpeechlet implements Speechlet {
   }
 
   /**
-   * Generates the verbiage output for a successful crime report query.
-   *
-   * @param crimeReports List of crime reports
-   * @param neighborhood String the neighborhood queried
-   * @return String
-   */
-  private String generateSpeechOutput(List<CrimeReport> crimeReports, String neighborhood) {
-      int numReports = getCrimeReportCount(crimeReports);
-      String reportCount = (numReports > 0) ? Integer.toString(numReports) : "no";
-      String location = (neighborhood != null) ? neighborhood : "Cincinnati";
-
-      return "There were " + reportCount + " crimes reported in " + location + ".";
-  }
-
-  /**
    * Retrieve the total number of incidents across all offenses.
    *
    * @param crimeReports List of crime reports reported
@@ -390,7 +354,47 @@ public class CincyDataSpeechlet implements Speechlet {
     return count;
   }
 
-  private String generateSpeechCard(List<CrimeReport> crimeReports) {
-    return "";
+  /**
+   * Generates the verbiage output for a successful crime report query.
+   *
+   * @param crimeReports List of crime reports
+   * @param neighborhood String the neighborhood queried
+   * @return String
+   */
+  private String generateSpeechOutput(List<CrimeReport> crimeReports, String neighborhood) {
+      int numReports = getCrimeReportCount(crimeReports);
+      String reportCount = (numReports > 0) ? Integer.toString(numReports) : "no";
+      String location = (neighborhood != null) ? neighborhood : "Cincinnati";
+
+      return "There were " + reportCount + " crimes reported in " + location + " yesterday.";
+  }
+
+
+  private SimpleCard generateSpeechCard(List<CrimeReport> crimeReports, String neighborhood) {
+    int numReports = getCrimeReportCount(crimeReports);
+    String reportCount = (numReports > 0) ? Integer.toString(numReports) : "no";
+    String location = (neighborhood != null) ? neighborhood : "Cincinnati";
+
+    StringBuilder stringBuilder = new StringBuilder();
+    stringBuilder.append(reportCount);
+    stringBuilder.append(" crimes were reported yesterday.");
+    stringBuilder.append("\n");
+
+    for(CrimeReport crimeReport : crimeReports) {
+      stringBuilder.append(crimeReport.getCount());
+      stringBuilder.append(" - ");
+      stringBuilder.append(crimeReport.getOffense());
+      stringBuilder.append("\n");
+    }
+
+    String speechText = "<p>" + reportCount + " crimes were reported yesterday.</p>"
+            + "<ul>"
+
+    // Create the Simple card content
+    SimpleCard card = new SimpleCard();
+    card.setTitle("Crime Report - " + location);
+    card.setContent(speechText);
+
+    return card;
   }
 }

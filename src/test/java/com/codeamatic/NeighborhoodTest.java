@@ -15,7 +15,13 @@ public class NeighborhoodTest extends TestCase {
   public void testNeighborhoodExistsMultipleSpaces() {
     // Socrata has Mount Washington as "Mount  Washington", so we have to be able
     // to send in Mount Washington (single space) and it be identified correctly.
-    assertEquals("Mount  Washington", Neighborhoods.getNeighborhood("Mount Washington"));
+    assertEquals("Mount  Adams", Neighborhoods.getNeighborhood("Mount Adams"));
+  }
+
+  public void testNeighborhoodExistsMountAbbreviation() {
+    // Socrata has Mount Washington as "Mount  Washington", so we have to be able
+    // to send in Mount Washington (single space) and it be identified correctly.
+    assertEquals("Mt.  Washington", Neighborhoods.getNeighborhood("Mount Washington"));
   }
 
   public void testNeighborhoodExistsHyphens() {
