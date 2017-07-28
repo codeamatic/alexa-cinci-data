@@ -6,6 +6,7 @@
 build
 .gradle/
 gradle/
+out
 
 # Compiled class file
 *.class
