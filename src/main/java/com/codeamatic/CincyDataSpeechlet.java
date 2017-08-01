@@ -9,7 +9,6 @@ import com.amazon.speech.speechlet.SessionStartedRequest;
 import com.amazon.speech.speechlet.Speechlet;
 import com.amazon.speech.speechlet.SpeechletException;
 import com.amazon.speech.speechlet.SpeechletResponse;
-import com.amazon.speech.ui.PlainTextOutputSpeech;
 import com.amazon.speech.ui.Reprompt;
 import com.amazon.speech.ui.SimpleCard;
 import com.amazon.speech.ui.SsmlOutputSpeech;
@@ -38,12 +37,6 @@ public class CincyDataSpeechlet implements Speechlet {
   private static final String SOCRATA_CRIME_API = System.getenv("SOCRATA_CINCY_CRIME_API");
   private static final String SKILL_NAME = "Cincy Data";
 
-  private static final String SLOT_NEIGHBORHOOD = "neighborhood";
-  private static final String SLOT_DATE = "date";
-  private static final String SLOT_DATE_STRING = "date_string";
-
-  private static final String NEIGHBORHOOD_PROMPT = "Which neighborhood and date would you like a crime report for?";
-
   @Override
   public void onSessionStarted(SessionStartedRequest request, Session session) throws SpeechletException {
     log.info("onSessionStarted requestId={}, sessionId={}", request.getRequestId(), session.getSessionId());
@@ -66,14 +59,11 @@ public class CincyDataSpeechlet implements Speechlet {
     switch(intentName) {
       case "CrimeReportIntent":
         return getCrimeReportResponse(intent);
-      case "SupportedNeighborhoodsIntent":
-        return getSupportedNeighborhoodsResponse();
       case "AMAZON.HelpIntent":
         return getHelpResponse();
       case "AMAZON.StopIntent":
-        return getStopResponse();
       case "AMAZON.CancelIntent":
-        return null;
+        return buildTellResponse("Goodbye", null);
       default:
         throw new SpeechletException("Invalid Intent");
     }
@@ -90,32 +80,11 @@ public class CincyDataSpeechlet implements Speechlet {
    * @return SpeechletResponse spoken and visual response for the given intent
    */
   private SpeechletResponse getWelcomeResponse() {
-    String neighborhoodPrompt = NEIGHBORHOOD_PROMPT;
-    String speechText = "Welcome to the " + SKILL_NAME + " skill. "
-            + "You can get crime and incident data for neighborhoods in the city of Cincinnati. "
-            + "For example, you can say, give me a crime report for Avondale. "
-            + "For a list of supported neighborhoods, ask what neighborhoods are supported. "
-            + "For additional instructions on what you can say, say help me. "
-            + neighborhoodPrompt;
+    String speechText = "<p>Welcome to the " + SKILL_NAME + " skill. "
+            + "You can get crime and incident data for the city of Cincinnati.</p>"
+            + "<p>Just ask for a crime report.</p>";
 
-    // Create the Simple card content
-    SimpleCard card = new SimpleCard();
-    card.setTitle(SKILL_NAME);
-    card.setContent(speechText);
-
-    return buildAskResponse(neighborhoodPrompt, null, card);
-  }
-
-  /**
-   * Creates and returns a {@code SpeechletResponse} for when a user would like the skill to stop.
-   *
-   * @return SpeechletResponse spoken response for the given intent
-   */
-  private SpeechletResponse getStopResponse() {
-    PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
-    speech.setText("Goodbye!");
-
-    return newTellResponse(speech);
+    return buildTellResponse(speechText, null);
   }
 
   /**
@@ -124,25 +93,10 @@ public class CincyDataSpeechlet implements Speechlet {
    * @return SpeechletResponse spoken and visual response for the given intent
    */
   private SpeechletResponse getHelpResponse() {
-    String speechText = "Welcome to the " + SKILL_NAME + " skill."
-            + " You can get crime and incident data for the city of Cincinnati."
-            + " For example, you could say, give me a crime report."
-            + " For additional instructions on what you can say, please say help me.";
+    String speechText = "<p>You can get crime and incident data for the city of Cincinnati.</p>"
+            + "<p>Just ask for a crime report.</p>";
 
-    // Create the Simple card content
-    SimpleCard card = new SimpleCard();
-    card.setTitle(SKILL_NAME);
-    card.setContent(speechText);
-
-    // Create the plain text output.
-    PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
-    speech.setText(speechText);
-
-    // Create reprompt
-    Reprompt reprompt = new Reprompt();
-    reprompt.setOutputSpeech(speech);
-
-    return newAskResponse(speech, reprompt, card);
+    return buildTellResponse(speechText, null);
   }
 
   /**
@@ -152,141 +106,15 @@ public class CincyDataSpeechlet implements Speechlet {
    * @return SpeechletResponse  spoken and visual response for crime report intent
    */
   private SpeechletResponse getCrimeReportResponse(final Intent intent) {
-    String neighborhoodSlotValue = intent.getSlot(SLOT_NEIGHBORHOOD).getValue();
-    String alexaDate = intent.getSlot(SLOT_DATE).getValue();
-    String alexaDateString = intent.getSlot(SLOT_DATE_STRING).getValue();
     String neighborhood = null;
-    String[] dates = null;
-
-    if(neighborhoodSlotValue != null) {
-      // Get the Neighborhood requested
-      neighborhood = Neighborhoods.getNeighborhood(neighborhoodSlotValue);
-
-      if(neighborhood == null) {
-        log.error("Neighborhood not supported.", neighborhoodSlotValue);
-
-        String speechOutput = "Sorry, crime and incident data is not supported for that neighborhood. "
-                              + NEIGHBORHOOD_PROMPT;
-
-        return buildAskResponse(speechOutput, null, null);
-      }
-    }
-
-    // Get the date requested using the Alexa date intent
-    if(alexaDate != null) {
-      try {
-        dates = getDatesFromSlot(alexaDate);
-      } catch(DateRangeException dex) {
-        log.error("Date requested is not supported.", dex);
-
-        String speechOutput = "Sorry, crime and incident data is not supported for that date. "
-                              + NEIGHBORHOOD_PROMPT;
-
-        return buildAskResponse(speechOutput, null,null);
-      }
-    }
-    // Custom data slot intent
-    else if(alexaDateString != null) {
-      try {
-        dates = getDatesFromDateString(alexaDateString);
-      } catch (Exception ex) {
-        log.error("Date string request error.", ex);
-
-        String speechOutput = "Sorry, crime and incident data is not supported for that date. "
-                              + NEIGHBORHOOD_PROMPT;
-
-        return buildAskResponse(speechOutput, null, null);
-      }
-    }
 
     SocrataClient socrataClient = new SocrataClient(SOCRATA_TOKEN, SOCRATA_CRIME_API);
-    List<CrimeReport> crimeReports = socrataClient.getCrimeReports(neighborhood, dates);
+    List<CrimeReport> crimeReports = socrataClient.getCrimeReports(neighborhood, null);
 
     String outputVerbiage = this.generateSpeechOutput(crimeReports, neighborhood);
     SimpleCard card = this.generateSpeechCard(crimeReports, neighborhood);
 
     return buildTellResponse(outputVerbiage, card);
-  }
-
-  /**
-   * Creates and returns a {@code SpeechletResponse} with a list of neighborhoods and card.
-   *
-   * @return SpeechletResponse spoken and visual response for the given intent
-   */
-  private SpeechletResponse getSupportedNeighborhoodsResponse() {
-    String repromptText = "Which neighborhood would you like a crime report for?";
-    String speechOutputText = "<p>Currently, I have crime and incident data for the following Cincinnati neighborhoods:</p> "
-            + getAllNeighborhoods() + repromptText;
-
-    // Card
-    SimpleCard card = new SimpleCard();
-    card.setTitle(SKILL_NAME + " - Neighborhoods");
-    card.setContent(speechOutputText);
-
-    return buildAskResponse(speechOutputText, repromptText, card);
-  }
-
-  /**
-   * Retrieve a listing of all of the supported neighborhoods, in a speech friendly format.
-   *
-   * @return String list of all supported neighborhoods
-   */
-  private String getAllNeighborhoods() {
-    StringBuilder stringBuilder = new StringBuilder();
-
-    for(String neighborhood : Neighborhoods.getNeighborhoods()) {
-      // Replace additional spaces in between words
-      String neighborhoodFormatted = neighborhood.trim().replaceAll(" +", " ");
-      stringBuilder.append(neighborhoodFormatted);
-      stringBuilder.append(", ");
-    }
-
-    stringBuilder.delete(stringBuilder.lastIndexOf(","), stringBuilder.length());
-
-    return stringBuilder.toString();
-  }
-
-  /**
-   * Retrieve a date or dates requested by the user, but mapped to a custom  slot.
-   * This differs from the default date slot by allowing for the use of date ranges.
-   *
-   *  Example: "Since last tuesday" => last tuesday through now
-   *
-   * @param dateString String that holds the current mapped custom slot.
-   * @return String date range
-   * @throws DateStringNotSupportedException When a date is not supported
-   * @throws DateRangeException When a date is in the future
-   */
-  private String[] getDatesFromDateString(String dateString) throws DateStringNotSupportedException, DateRangeException {
-    return DateStringUtil.getFormattedDates(dateString);
-  }
-
-  /**
-   * Retrieves the requested date, if applicable.  Returns date in the format
-   * YYYY-MM-DD::YYYY-MM-DD where the second date represents the end date (or today).
-   *
-   * @param alexaDate String that holds the current Alexa default date slot
-   * @return String date in string format
-   * @throws DateRangeException thrown if the date provided is in the future
-   */
-  private String[] getDatesFromSlot(String alexaDate) throws DateRangeException {
-    String socrataStringDate = AlexaDateUtil.getFormattedDate(alexaDate);
-
-    if(socrataStringDate == null) {
-      throw new DateRangeException("Unsupported date: " + alexaDate);
-    }
-
-    // Convert socrataDate to a real date to compare against todays date
-    LocalDate socrataDate = LocalDate.parse(socrataStringDate, DateTimeFormatter.ISO_DATE);
-
-    if(socrataDate.isAfter(LocalDate.now())) {
-      throw new DateRangeException("Future date: " + socrataDate.toString());
-    }
-
-    String[] dates = new String[2];
-    dates[0] = socrataStringDate;
-
-    return dates;
   }
 
   /**
@@ -323,8 +151,8 @@ public class CincyDataSpeechlet implements Speechlet {
 
     // Set reprompt
     if(repromptText != null) {
-      PlainTextOutputSpeech repromptSpeechOutput = new PlainTextOutputSpeech();
-      repromptSpeechOutput.setText(repromptText);
+      SsmlOutputSpeech repromptSpeechOutput = new SsmlOutputSpeech();
+      repromptSpeechOutput.setSsml(repromptText);
 
       reprompt.setOutputSpeech(repromptSpeechOutput);
     } else {
@@ -369,7 +197,13 @@ public class CincyDataSpeechlet implements Speechlet {
       return "There were " + reportCount + " crimes reported in " + location + " yesterday.";
   }
 
-
+  /**
+   * Generate a SimpleCard from a list of crime reports and a neighborhood.
+   *
+   * @param crimeReports List of crime reports
+   * @param neighborhood String neighborhood being requested
+   * @return a SimpleCard
+   */
   private SimpleCard generateSpeechCard(List<CrimeReport> crimeReports, String neighborhood) {
     int numReports = getCrimeReportCount(crimeReports);
     String reportCount = (numReports > 0) ? Integer.toString(numReports) : "no";
@@ -378,22 +212,19 @@ public class CincyDataSpeechlet implements Speechlet {
     StringBuilder stringBuilder = new StringBuilder();
     stringBuilder.append(reportCount);
     stringBuilder.append(" crimes were reported yesterday.");
-    stringBuilder.append("\n");
+    stringBuilder.append("\n\n");
 
     for(CrimeReport crimeReport : crimeReports) {
       stringBuilder.append(crimeReport.getCount());
       stringBuilder.append(" - ");
-      stringBuilder.append(crimeReport.getOffense());
+      stringBuilder.append(crimeReport.getOffense().replaceAll("-", ""));
       stringBuilder.append("\n");
     }
-
-    String speechText = "<p>" + reportCount + " crimes were reported yesterday.</p>"
-            + "<ul>"
 
     // Create the Simple card content
     SimpleCard card = new SimpleCard();
     card.setTitle("Crime Report - " + location);
-    card.setContent(speechText);
+    card.setContent(stringBuilder.toString());
 
     return card;
   }

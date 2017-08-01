@@ -48,9 +48,9 @@ public class SocrataClient implements Socrata {
   public List<CrimeReport> getCrimeReports(String neighborhood, String[] dates) {
     CrimeReport[] crimeReports;
 
-    dates = prepareDates(dates);
+    String[] preparedDates = prepareDates(dates);
 
-    String query = this.getServiceQuery(neighborhood, dates[0], dates[1]);
+    String query = this.getServiceQuery(neighborhood, preparedDates[0], preparedDates[1]);
     String urlString = this.serviceUrl + query;
 
     try {
