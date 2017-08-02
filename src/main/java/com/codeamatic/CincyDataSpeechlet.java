@@ -211,8 +211,8 @@ public class CincyDataSpeechlet implements Speechlet {
 
     StringBuilder stringBuilder = new StringBuilder();
     stringBuilder.append(reportCount);
-    stringBuilder.append(" crimes were reported yesterday.");
-    stringBuilder.append("\n\\u{00A0}\n");
+    stringBuilder.append(" crimes were reported yesterday:");
+    stringBuilder.append("\n\n");
 
     for(CrimeReport crimeReport : crimeReports) {
       String offense = crimeReport.getOffense();
