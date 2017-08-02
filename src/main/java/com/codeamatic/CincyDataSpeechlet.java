@@ -81,10 +81,10 @@ public class CincyDataSpeechlet implements Speechlet {
    */
   private SpeechletResponse getWelcomeResponse() {
     String speechText = "<p>Welcome to the " + SKILL_NAME + " skill. "
-            + "You can get crime and incident data for the city of Cincinnati.</p>"
+            + "You can get crime and incident data for the city of Cincinnati.</p> "
             + "<p>Just ask for a crime report.</p>";
 
-    return buildTellResponse(speechText, null);
+    return buildAskResponse(speechText, speechText, null);
   }
 
   /**
@@ -93,10 +93,10 @@ public class CincyDataSpeechlet implements Speechlet {
    * @return SpeechletResponse spoken and visual response for the given intent
    */
   private SpeechletResponse getHelpResponse() {
-    String speechText = "<p>You can get crime and incident data for the city of Cincinnati.</p>"
+    String speechText = "<p>You can get crime and incident data for the city of Cincinnati.</p> "
             + "<p>Just ask for a crime report.</p>";
 
-    return buildTellResponse(speechText, null);
+    return buildAskResponse(speechText, speechText, null);
   }
 
   /**
@@ -147,12 +147,12 @@ public class CincyDataSpeechlet implements Speechlet {
     Reprompt reprompt = new Reprompt();
     // Create the ssml text output.
     SsmlOutputSpeech speech = new SsmlOutputSpeech();
-    speech.setSsml(speechOutput);
+    speech.setSsml("<speak>" + speechOutput + "</speak>");
 
     // Set reprompt
     if(repromptText != null) {
       SsmlOutputSpeech repromptSpeechOutput = new SsmlOutputSpeech();
-      repromptSpeechOutput.setSsml(repromptText);
+      repromptSpeechOutput.setSsml("<speak>" + repromptText + "</speak>");
 
       reprompt.setOutputSpeech(repromptSpeechOutput);
     } else {
@@ -212,12 +212,16 @@ public class CincyDataSpeechlet implements Speechlet {
     StringBuilder stringBuilder = new StringBuilder();
     stringBuilder.append(reportCount);
     stringBuilder.append(" crimes were reported yesterday.");
-    stringBuilder.append("\n\n");
+    stringBuilder.append("\n\\u{00A0}\n");
 
     for(CrimeReport crimeReport : crimeReports) {
+      String offense = crimeReport.getOffense();
+      offense = offense.replaceAll("-", "");
+      offense = offense.substring(0, 1) + offense.substring(1).toLowerCase();
+
       stringBuilder.append(crimeReport.getCount());
       stringBuilder.append(" - ");
-      stringBuilder.append(crimeReport.getOffense().replaceAll("-", ""));
+      stringBuilder.append(offense);
       stringBuilder.append("\n");
     }
 
