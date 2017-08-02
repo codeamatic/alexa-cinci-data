@@ -1,6 +1,7 @@
 # Intellij
 .idea
 .iml
+bash.exe.stackdump
 
 # packages
 build

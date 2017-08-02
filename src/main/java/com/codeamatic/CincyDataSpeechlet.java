@@ -126,7 +126,7 @@ public class CincyDataSpeechlet implements Speechlet {
   private SpeechletResponse buildTellResponse(String speechOutput, SimpleCard card) {
     // Create the ssml text output.
     SsmlOutputSpeech speech = new SsmlOutputSpeech();
-    speech.setSsml(speechOutput);
+    speech.setSsml("<speak>" + speechOutput + "</speak>");
 
     if (card == null) {
       return newTellResponse(speech);
